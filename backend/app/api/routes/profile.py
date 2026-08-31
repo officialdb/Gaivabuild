@@ -6,12 +6,10 @@ from app.services.profile_service import ProfileService
 
 router = APIRouter()
 
-@router.get("/", response_model=FullProfile)
-async def get_profile(current_user: str = Depends(get_current_user), db = Depends(get_db)):
-    return await ProfileService.get_full_profile(db, current_user)
-
-@router.put("/details")
-async def update_details(data: ProfileDetails, current_user: str = Depends(get_current_user), db = Depends(get_db)):
+from typing import List, Any
+    profile = await ProfileService.get_full_profile(db, current_user)
+    return [profile]
+async def upsert_profile(data: List[Any], current_user: str = Depends(get_current_user), db = Depends(get_db)):
     return await ProfileService.update_details(db, current_user, data)
 
 @router.put("/links")

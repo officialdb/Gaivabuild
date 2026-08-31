@@ -25,12 +25,12 @@ async def clear_cache(current_user: str = Depends(get_current_user), db = Depend
     await AccountService.clear_cache(db, current_user)
     return {"msg": "Cache cleared"}
 
-@router.post("/logout")
+@router.delete("/logout")
 async def logout(token: str = Depends(oauth2_scheme), current_user: str = Depends(get_current_user), db = Depends(get_db)):
     await AccountService.logout(db, current_user, token)
     return {"msg": "Logged out"}
 
-@router.delete("/", status_code=status.HTTP_200_OK)
+@router.delete("", status_code=status.HTTP_200_OK)
 async def delete_account(current_user: str = Depends(get_current_user), db = Depends(get_db)):
     from sqlalchemy.future import select
     from app.models.user import User as UserModel

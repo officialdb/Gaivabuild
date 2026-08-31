@@ -38,8 +38,9 @@ app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["aut
 app.include_router(cv_generator.router, prefix=f"{settings.API_V1_STR}/cv", tags=["cv"])
 app.include_router(profile.router, prefix=f"{settings.API_V1_STR}/profile", tags=["profile"])
 app.include_router(account.router, prefix=f"{settings.API_V1_STR}/account", tags=["account"])
-from app.api.routes import export
+from app.api.routes import export, storage
 app.include_router(export.router, prefix=f"{settings.API_V1_STR}/export", tags=["export"])
+app.include_router(storage.router, prefix="/storage/v1", tags=["storage"])
 
 if __name__ == "__main__":
     import uvicorn

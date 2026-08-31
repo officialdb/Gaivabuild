@@ -158,84 +158,40 @@ class AuthService extends ChangeNotifier {
     final cleanEmail = email.trim();
     final cleanName = (fullName != null && fullName.trim().isNotEmpty) ? fullName.trim() : 'User';
 
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/auth/register'),
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'email': cleanEmail,
-          'password': password,
-          'name': cleanName,
-        }),
-      );
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/v1/auth/register'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'email': cleanEmail,
+        'password': password,
+        'full_name': cleanName,
+      }),
+    );
 
-      final json = _safeParseJson(response.body);
-      final userId = json?['id'] as String? ?? json?['user']?['id'] as String? ?? projectId;
-      final token = json?['accessToken'] as String? ?? 'session_$userId';
-
-      final user = AppUser(
-        id: userId,
-        email: cleanEmail,
-        fullName: cleanName,
-        provider: 'email',
-        createdAt: DateTime.now(),
-      );
-
-      final session = AppSession(
-        accessToken: token,
-        refreshToken: '',
-        expiresIn: 3600,
-        user: user,
-      );
-
-      // Instantly sync user profile to Auth Postgres master_profiles table!
-      await upsertMasterProfile(
-        fullName: cleanName,
-        title: 'Professional Candidate',
-        email: cleanEmail,
-      );
-
-      // Send 6-digit OTP verification code to user email
-      await sendEmailVerificationCode(cleanEmail);
-
-      await _persistSession(session);
-      return _currentSession!;
-    } catch (_) {
-      // Offline fallback session
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      // Success!
+      // In FastAPI, register returns the User object, not a token. 
+      // We should probably log them in immediately to get the token!
+      return await signInWithEmail(email: email, password: password);
+    } else {
+      final error = _safeParseJson(response.body);
+      final msg = error?['detail'] ?? 'Registration failed. Please try again.';
+      throw Exception(msg);
     }
-
-    final localUser = AppUser(
-      id: projectId,
-      email: cleanEmail,
-      fullName: cleanName,
-      provider: 'email',
-      createdAt: DateTime.now(),
-    );
-
-    final session = AppSession(
-      accessToken: 'auth_token_${DateTime.now().millisecondsSinceEpoch}',
-      refreshToken: 'auth_refresh_token',
-      expiresIn: 3600,
-      user: localUser,
-    );
-
-    await upsertMasterProfile(
-      fullName: cleanName,
-      title: 'Professional Candidate',
-      email: cleanEmail,
-    );
-
-    await _persistSession(session);
-    return _currentSession!;
   }
 
-  /// Sends 6-digit verification code to user email
+  /// Trigger Email OTP code delivery via Auth API
   Future<void> sendEmailVerificationCode(String email) async {
     try {
       await http.post(
-        Uri.parse('$baseUrl/api/auth/email/send-verification'),
+        Uri.parse('$baseUrl/api/v1/auth/forgot-password'),
         headers: _getHeaders(),
-        body: jsonEncode({'email': email.trim()}),
+        body: jsonEncode({
+          'email': email.trim(),
+        }),
       );
     } catch (_) {}
   }
@@ -278,43 +234,27 @@ class AuthService extends ChangeNotifier {
   }) async {
     final cleanEmail = email.trim();
 
-    try {
-      final headers = _getHeaders();
-      headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/auth/login'),
-        headers: headers,
-        body: {
-          'username': cleanEmail,
-          'password': password,
-        },
-      );
-
-      final json = _safeParseJson(response.body);
-
-      if (response.statusCode >= 200 && response.statusCode < 300 && json != null) {
-        final session = AppSession.fromJson(json);
-        await _persistSession(session);
-        return _currentSession!;
-      }
-    } catch (_) {}
-
-    final localUser = AppUser(
-      id: projectId,
-      email: cleanEmail,
-      fullName: 'User',
-      provider: 'email',
-      createdAt: DateTime.now(),
+    final headers = _getHeaders();
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/v1/auth/login'),
+      headers: headers,
+      body: {
+        'username': cleanEmail,
+        'password': password,
+      },
     );
 
-    final session = AppSession(
-      accessToken: 'auth_token_${DateTime.now().millisecondsSinceEpoch}',
-      refreshToken: 'auth_refresh_token',
-      expiresIn: 3600,
-      user: localUser,
-    );
-    await _persistSession(session);
-    return _currentSession!;
+    final json = _safeParseJson(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300 && json != null) {
+      final session = AppSession.fromJson(json);
+      await _persistSession(session);
+      return _currentSession!;
+    } else {
+      final msg = json?['detail'] ?? 'Invalid email or password.';
+      throw Exception(msg);
+    }
   }
 
   /// Initiates Social OAuth Authentication (Google, Apple, GitHub)
