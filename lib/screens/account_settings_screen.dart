@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/master_profile.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -19,6 +21,14 @@ class AccountSettingsScreen extends StatefulWidget {
 }
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ${AuthService().currentSession?.accessToken ?? ''}',
+      };
+
+  bool _is2faEnabled = true;
+
   late MasterProfile _currentProfile;
 
   @override
@@ -214,18 +224,82 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (formKey.currentState!.validate()) {
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Password changed successfully!'),
-                    backgroundColor: Color.fromRGBO(16, 185, 129, 1),
-                  ),
-                );
+                try {
+                  final res = await http.post(
+                    Uri.parse('${AuthService.baseUrl}/api/v1/account/change-password'),
+                    headers: _headers,
+                    body: jsonEncode({
+                      'current_password': currentPassController.text,
+                      'new_password': newPassController.text,
+                    }),
+                  );
+                  if (!mounted) return;
+                  if (res.statusCode >= 200 && res.statusCode < 300) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed successfully!'), backgroundColor: AppTheme.accent));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to change password: ${jsonDecode(res.body)['detail'] ?? 'Error'}'), backgroundColor: AppTheme.danger));
+                  }
+                } catch (_) {}
               }
             },
             child: const Text('Update Password'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  void _openSocialLinksDialog() {
+    final linkedinCtrl = TextEditingController(text: _currentProfile.linkedInUrl);
+    final githubCtrl = TextEditingController(text: _currentProfile.githubUrl);
+    final portfolioCtrl = TextEditingController(text: _currentProfile.portfolioUrl);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text('Social & Portfolio Links', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppTheme.textPrimaryLight)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: linkedinCtrl,
+              decoration: const InputDecoration(labelText: 'LinkedIn URL', hintText: 'https://linkedin.com/in/...', prefixIcon: Icon(Icons.link)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: githubCtrl,
+              decoration: const InputDecoration(labelText: 'GitHub URL', hintText: 'https://github.com/...', prefixIcon: Icon(Icons.code)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: portfolioCtrl,
+              decoration: const InputDecoration(labelText: 'Portfolio URL', hintText: 'https://...', prefixIcon: Icon(Icons.language)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.cobaltBlue),
+            onPressed: () {
+              final updated = _currentProfile.copyWith(
+                linkedInUrl: linkedinCtrl.text.trim(),
+                githubUrl: githubCtrl.text.trim(),
+                portfolioUrl: portfolioCtrl.text.trim(),
+              );
+              setState(() => _currentProfile = updated);
+              widget.onProfileUpdated(updated);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Social links saved!'), backgroundColor: AppTheme.accent),
+              );
+            },
+            child: const Text('Save Links'),
           ),
         ],
       ),
@@ -259,6 +333,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
+              await http.delete(Uri.parse('${AuthService.baseUrl}/api/v1/account'), headers: _headers);
               await AuthService().signOut();
               if (mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
@@ -325,6 +400,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
+              await http.delete(Uri.parse('${AuthService.baseUrl}/api/v1/account'), headers: _headers);
               await AuthService().signOut();
               if (mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
@@ -464,14 +540,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   icon: Icons.link_rounded,
                   title: 'Social & Portfolio Links',
                   subtitle: 'LinkedIn, GitHub, Personal Website',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Connected: linkedin.com/in/alexmorgan'),
-                        backgroundColor: AppTheme.cobaltBlue,
-                      ),
-                    );
-                  },
+                  onTap: _openSocialLinksDialog,
                 ),
               ],
             ),
@@ -493,9 +562,18 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   icon: Icons.shield_outlined,
                   title: 'Two-Factor Authentication (2FA)',
                   subtitle: 'Enabled via Authenticator App',
-                  trailing: const Icon(Icons.check_circle_rounded,
-                      color: AppTheme.accent, size: 20),
-                  onTap: () {},
+                  trailing: Icon(_is2faEnabled ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                      color: _is2faEnabled ? AppTheme.accent : AppTheme.danger, size: 20),
+                  onTap: () async {
+                    try {
+                      final res = await http.post(Uri.parse('${AuthService.baseUrl}/api/v1/account/2fa/toggle'), headers: _headers);
+                      if (res.statusCode >= 200 && res.statusCode < 300) {
+                        setState(() => _is2faEnabled = !_is2faEnabled);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_is2faEnabled ? '2FA Enabled!' : '2FA Disabled'), backgroundColor: AppTheme.cobaltBlue));
+                      }
+                    } catch (_) {}
+                  },
                 ),
               ],
             ),
@@ -510,13 +588,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   icon: Icons.download_outlined,
                   title: 'Export Master Profile JSON',
                   subtitle: 'Download complete structured resume facts',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Master Profile facts exported to JSON file!'),
-                        backgroundColor: AppTheme.accent,
-                      ),
-                    );
+                  onTap: () async {
+                    try {
+                      await http.get(Uri.parse('${AuthService.baseUrl}/api/v1/account/export-json'), headers: _headers);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Master Profile facts exported to JSON file!'), backgroundColor: AppTheme.accent));
+                    } catch (_) {}
                   },
                 ),
                 const Divider(height: 1, color: AppTheme.borderLight),
@@ -524,13 +601,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   icon: Icons.cleaning_services_outlined,
                   title: 'Clear AI Tailoring Cache',
                   subtitle: 'Wipe temporary JD match embeddings from Auth',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('AI embedding cache cleared on Auth.'),
-                        backgroundColor: AppTheme.textPrimaryLight,
-                      ),
-                    );
+                  onTap: () async {
+                    try {
+                      await http.delete(Uri.parse('${AuthService.baseUrl}/api/v1/account/clear-cache'), headers: _headers);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI embedding cache cleared on Auth.'), backgroundColor: AppTheme.textPrimaryLight));
+                    } catch (_) {}
                   },
                 ),
               ],
