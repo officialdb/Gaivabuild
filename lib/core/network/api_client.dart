@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1';
+  static const String baseUrl = 'https://gaivabuild-production.up.railway.app/api/v1';
   final _storage = const FlutterSecureStorage();
   final http.Client _client = http.Client();
 

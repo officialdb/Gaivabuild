@@ -25,7 +25,7 @@ class TailorController extends StateNotifier<TailorGenerationState> {
 
     SSEClient.subscribeToSSE(
       method: SSERequestType.POST,
-      url: 'http://127.0.0.1:8000/api/v1/cv/tailor/stream',
+      url: 'https://gaivabuild-production.up.railway.app/api/v1/cv/tailor/stream',
       header: {
         "Authorization": "Bearer $token",
         "Accept": "text/event-stream",

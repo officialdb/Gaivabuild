@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/master_profile.dart';
@@ -65,21 +64,10 @@ class AuthService extends ChangeNotifier {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  /// Credentials loaded from .env.local
-  static String get baseUrl =>
-      dotenv.env['AUTH_API_BASE'] ??
-      const String.fromEnvironment(
-        'AUTH_API_BASE',
-        defaultValue: 'https://4qp64mtf.us-east.auth.app',
-      );
-
-  static String get apiKey =>
-      dotenv.env['AUTH_API_KEY'] ??
-      const String.fromEnvironment('AUTH_API_KEY');
-
-  static String get projectId =>
-      dotenv.env['AUTH_PROJECT_ID'] ??
-      const String.fromEnvironment('AUTH_PROJECT_ID');
+  /// Credentials
+  static String get baseUrl => 'https://gaivabuild-production.up.railway.app';
+  static String get apiKey => '';
+  static String get projectId => '';
 
   AppSession? _currentSession;
   AppUser? get currentUser => _currentSession?.user;

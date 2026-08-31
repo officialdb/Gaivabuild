@@ -7,8 +7,8 @@ import '../models/tailored_application.dart';
 
 class AiTailoringService {
   static final String baseUrl = !kIsWeb && Platform.isAndroid 
-      ? 'http://127.0.0.1:8000' 
-      : 'http://127.0.0.1:8000';
+      ? 'https://gaivabuild-production.up.railway.app' 
+      : 'https://gaivabuild-production.up.railway.app';
 
   static Future<TailoredJobApplication> generateTailoredApplication({
     required String jobTitle,

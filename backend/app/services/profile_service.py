@@ -1,15 +1,19 @@
 class ProfileService:
     @staticmethod
     async def get_full_profile(db, user_id: str):
-        pass
-
-    @staticmethod
-    async def update_details(db, user_id: str, data):
-        pass
-
-    @staticmethod
-    async def update_links(db, user_id: str, data):
-        pass
+        # Fallback empty profile for now until we build the DB tables
+        return {
+            "id": user_id,
+            "full_name": "",
+            "title": "",
+            "email": "",
+            "phone": "",
+            "location": "",
+            "bio": "",
+            "experiences": [],
+            "education": [],
+            "skills": []
+        }
 
     @staticmethod
     async def create_experience(db, user_id: str, data):

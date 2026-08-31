@@ -5,9 +5,20 @@ from app.core.config import settings
 from app.api.routes import auth, cv_generator, profile, account
 from app.middleware.logging import LoggingMiddleware
 
+from contextlib import asynccontextmanager
+from app.core.database import engine, Base
+from app.models.user import User  # Ensure models are imported for metadata
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 # Add custom logging middleware
