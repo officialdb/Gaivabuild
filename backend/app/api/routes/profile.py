@@ -1,15 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from app.api.dependencies import get_current_user, get_db
-from typing import List
+from typing import List, Any
 from app.schemas.profile import FullProfile, ProfileDetails, ProfileLinks, Experience, Education, SkillItem
 from app.services.profile_service import ProfileService
 
 router = APIRouter()
 
-from typing import List, Any
+@router.get("", response_model=List[Any])
+async def get_profile(current_user: str = Depends(get_current_user), db = Depends(get_db)):
     profile = await ProfileService.get_full_profile(db, current_user)
     return [profile]
+
+@router.post("", response_model=List[Any])
 async def upsert_profile(data: List[Any], current_user: str = Depends(get_current_user), db = Depends(get_db)):
+    # Legacy Supabase upsert simulation
+    return data
+
+@router.put("/details")
+async def update_details(data: ProfileDetails, current_user: str = Depends(get_current_user), db = Depends(get_db)):
     return await ProfileService.update_details(db, current_user, data)
 
 @router.put("/links")
