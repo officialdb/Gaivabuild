@@ -122,8 +122,8 @@ class _DataIngestionBottomSheetState extends State<DataIngestionBottomSheet> {
           ElevatedButton(
             onPressed: () {
               final url = urlCtrl.text.trim();
-              if (url.isEmpty || !url.startsWith('http')) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid URL', style: TextStyle(color: Colors.white))));
+              if (url.isEmpty || (!url.contains('linkedin.com/in/') && !url.contains('linkedin.com/pub/'))) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid LinkedIn Profile URL', style: TextStyle(color: Colors.white))));
                 return;
               }
               Navigator.pop(ctx); // Close dialog
@@ -273,8 +273,8 @@ class _IngestionCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               final url = urlCtrl.text.trim();
-              if (url.isEmpty || !url.startsWith('http')) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid URL', style: TextStyle(color: Colors.white))));
+              if (url.isEmpty || (!url.contains('linkedin.com/in/') && !url.contains('linkedin.com/pub/'))) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid LinkedIn Profile URL', style: TextStyle(color: Colors.white))));
                 return;
               }
               Navigator.pop(ctx); // Close dialog

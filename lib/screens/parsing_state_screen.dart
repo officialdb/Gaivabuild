@@ -54,7 +54,7 @@ class _ParsingStateScreenState extends State<ParsingStateScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _parseDocumentBytes().then((_) => _startPipeline());
+    _parseDocumentBytes();
   }
 
   Future<void> _parseDocumentBytes() async {
@@ -76,8 +76,15 @@ class _ParsingStateScreenState extends State<ParsingStateScreen>
       }
     } catch(e) {
       debugPrint('Error parsing CV: $e');
-      // Fallback empty profile on error
-      _parsedProfile = MasterProfile.empty(name: user?.fullName, email: user?.email);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to extract profile: $e'),
+          backgroundColor: AppTheme.danger,
+          duration: const Duration(seconds: 4),
+        ));
+      }
+      return;
     }
 
     // Populate live extracted pills from real candidate profile
