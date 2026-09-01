@@ -328,6 +328,11 @@ class _CoverLetterDocumentLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final contactSubtitle = [app.email, app.phone, app.location].where((s) => s.isNotEmpty).join(' • ');
+    final firstBlockHasSalutation = coverLetter.blocks.isNotEmpty &&
+        (coverLetter.blocks.first.content.trim().toLowerCase().startsWith('dear ') ||
+         coverLetter.blocks.first.content.trim().toLowerCase().startsWith('to '));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -340,17 +345,19 @@ class _CoverLetterDocumentLayout extends StatelessWidget {
             color: AppTheme.textPrimaryLight,
           ),
         ),
-        const SizedBox(height: 2),
-        const Text(
-          'Candidate Profile',
-          style: TextStyle(
-            fontSize: 12,
-            color: AppTheme.textSecondaryLight,
+        if (contactSubtitle.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            contactSubtitle,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppTheme.textSecondaryLight,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
+        ],
+        const SizedBox(height: 16),
         const Divider(color: AppTheme.borderLight),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
 
         // Date & Recipient
         Text(
@@ -360,15 +367,17 @@ class _CoverLetterDocumentLayout extends StatelessWidget {
             color: AppTheme.textSecondaryLight,
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Dear Hiring Team at ${app.targetCompany.isNotEmpty ? app.targetCompany : 'the Organization'},',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimaryLight,
+        if (!firstBlockHasSalutation) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Dear Hiring Team at ${app.targetCompany.isNotEmpty ? app.targetCompany : 'the Organization'},',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimaryLight,
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 14),
 
         // Cover Letter Body Blocks
@@ -406,6 +415,8 @@ class _CvDocumentLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final contactSubtitle = [app.email, app.phone, app.location].where((s) => s.isNotEmpty).join(' • ');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -421,15 +432,17 @@ class _CvDocumentLayout extends StatelessWidget {
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                app.candidateName,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppTheme.textSecondaryLight,
-                  fontSize: 9.5,
+              if (contactSubtitle.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  contactSubtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondaryLight,
+                    fontSize: 9.5,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -531,31 +544,25 @@ class _CvDocumentLayout extends StatelessWidget {
         }),
 
         // Section: Education
-        const _CvSectionTitle(title: 'EDUCATION'),
-        const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                app.education.isNotEmpty ? app.education : 'B.S. in Computer Science',
-                style: TextStyle(
-                  color: AppTheme.textPrimaryLight,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
+        if (app.education.isNotEmpty) ...[
+          const _CvSectionTitle(title: 'EDUCATION'),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  app.education,
+                  style: const TextStyle(
+                    color: AppTheme.textPrimaryLight,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(width: 8),
-            Text(
-              '',
-              style: TextStyle(
-                color: AppTheme.textSecondaryLight,
-                fontSize: 9.5,
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }

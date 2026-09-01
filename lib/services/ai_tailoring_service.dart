@@ -23,11 +23,20 @@ class AiTailoringService {
       headers['Authorization'] = 'Bearer $token';
     }
 
+    final formattedEdu = masterProfile.education.isNotEmpty
+        ? masterProfile.education
+            .map((e) => "${e.degree} at ${e.institution}${e.startYear.isNotEmpty || e.endYear.isNotEmpty ? ' (${e.startYear}-${e.endYear})' : ''}")
+            .join(" | ")
+        : '';
+
     final userProfileData = '''
 Name: ${masterProfile.fullName}
 Title: ${masterProfile.title}
-Bio: ${masterProfile.bio.isNotEmpty ? masterProfile.bio : 'Candidate Bio'}
-Education: ${masterProfile.education.isNotEmpty ? masterProfile.education.map((e) => "${e.degree} at ${e.institution} (${e.startYear}-${e.endYear})").join(" | ") : 'B.S. Computer Science'}
+Email: ${masterProfile.email}
+Phone: ${masterProfile.phone}
+Location: ${masterProfile.location}
+Bio: ${masterProfile.bio}
+Education: $formattedEdu
 Skills: ${masterProfile.skills.map((s) => s.name).join(", ")}
 Work Experiences:
 ${masterProfile.experiences.map((exp) => "Role: ${exp.title} at ${exp.company} (${exp.startDate} - ${exp.endDate})\nBullets:\n${exp.bullets.map((b) => "- ${b.text}").join("\n")}").join("\n\n")}
@@ -54,7 +63,13 @@ ${masterProfile.experiences.map((exp) => "Role: ${exp.title} at ${exp.company} (
         final parsedContent = Map<String, dynamic>.from(decoded);
         parsedContent['raw_jd'] = rawJd;
         parsedContent['tone'] = tone;
-        parsedContent['candidate_name'] = masterProfile.fullName;
+        parsedContent['candidate_name'] = (masterProfile.fullName.isNotEmpty && masterProfile.fullName != 'Candidate')
+            ? masterProfile.fullName
+            : (parsedContent['candidate_name'] ?? 'Candidate');
+        parsedContent['email'] = masterProfile.email.isNotEmpty ? masterProfile.email : (parsedContent['email'] ?? '');
+        parsedContent['phone'] = masterProfile.phone.isNotEmpty ? masterProfile.phone : (parsedContent['phone'] ?? '');
+        parsedContent['location'] = masterProfile.location.isNotEmpty ? masterProfile.location : (parsedContent['location'] ?? '');
+        parsedContent['education'] = formattedEdu.isNotEmpty ? formattedEdu : (parsedContent['education'] ?? '');
         return TailoredJobApplication.fromJson(parsedContent);
       } else {
         throw Exception('API Error: ${response.statusCode} - ${response.body}');

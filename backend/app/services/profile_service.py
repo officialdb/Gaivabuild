@@ -91,7 +91,20 @@ def _call_gemini_extraction_sync(prompt: str) -> str:
         raise last_error
     return ""
 
-def _extract_profile_rule_based(raw_text: str, default_email: str) -> dict:
+def _extract_name_from_filename(filename: str) -> str:
+    if not filename:
+        return ""
+    import re
+    base = re.sub(r'\.[a-zA-Z0-9]+$', '', filename)
+    base = re.sub(r'^\d+[\s_-]*', '', base)
+    base = re.sub(r'[\s_-]*(?:resume|cv|curriculum_vitae|profile)[\s_-]*', '', base, flags=re.IGNORECASE)
+    name = re.sub(r'[_-]', ' ', base).strip()
+    words = name.split()
+    if 1 <= len(words) <= 5 and all(w.isalpha() for w in words):
+        return ' '.join(w.capitalize() for w in words)
+    return ""
+
+def _extract_profile_rule_based(raw_text: str, default_email: str, filename: str = "") -> dict:
     import re
     lines = [l.strip() for l in raw_text.splitlines() if l.strip()]
     
@@ -103,16 +116,25 @@ def _extract_profile_rule_based(raw_text: str, default_email: str) -> dict:
     phone_match = re.search(r'(\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}', raw_text)
     phone = phone_match.group(0) if phone_match else ""
     
-    # 3. Name & Title from top lines
-    full_name = "Candidate"
+    # 3. Name & Title extraction from filename and top text lines
+    full_name = _extract_name_from_filename(filename)
     title = ""
-    for line in lines[:6]:
-        if "@" not in line and not any(char.isdigit() for char in line) and len(line) < 40 and not any(w in line.lower() for w in ["resume", "curriculum", "contact"]):
-            if full_name == "Candidate":
-                full_name = line
-            elif not title and len(line) < 50:
-                title = line
-                break
+    for line in lines[:10]:
+        clean = line.strip()
+        if "@" in clean or any(char.isdigit() for char in clean):
+            continue
+        words = clean.split()
+        if 2 <= len(words) <= 4 and all(w.isalpha() for w in words):
+            if not any(w.lower() in ["resume", "curriculum", "vitae", "contact", "email", "phone", "profile", "summary", "experience", "education", "skills"] for w in words):
+                if not full_name or full_name == "Candidate":
+                    full_name = clean
+                    continue
+        if full_name and not title and len(clean) < 60:
+            if not any(w.lower() in ["contact", "email", "phone", "profile", "summary", "experience", "education", "skills"] for w in clean.split()):
+                title = clean
+                
+    if not full_name:
+        full_name = "Candidate"
                 
     # 4. Skills extraction
     found_skills = []
@@ -157,19 +179,28 @@ def _extract_profile_rule_based(raw_text: str, default_email: str) -> dict:
         
     # 6. Education extraction
     education = []
-    edu_keywords = ["Bachelor", "Master", "B.S.", "B.A.", "M.S.", "Ph.D.", "Degree", "University", "College", "Institute", "Polytechnic"]
+    edu_keywords = ["bachelor", "master", "b.s", "b.a", "b.sc", "m.s", "m.sc", "ph.d", "degree", "university", "college", "institute", "polytechnic"]
     for line in lines:
-        if any(kw.lower() in line.lower() for kw in edu_keywords) and len(line) < 100:
-            education.append({
-                "id": f"edu_{uuid.uuid4().hex[:8]}",
-                "institution": line,
-                "degree": "Degree Program",
-                "field_of_study": "",
-                "start_year": "",
-                "end_year": ""
-            })
-            if len(education) >= 2:
-                break
+        lower_line = line.lower()
+        if any(kw in lower_line for kw in edu_keywords) and len(line) < 120:
+            if not any(header == lower_line for header in ["education", "academic background"]):
+                year_match = re.search(r'\b(20\d{2}|19\d{2})\b', line)
+                year_str = year_match.group(0) if year_match else ""
+                
+                parts = re.split(r'[-–|,]', line)
+                deg = parts[0].strip() if len(parts) > 0 else line
+                inst = parts[1].strip() if len(parts) > 1 else line
+                
+                education.append({
+                    "id": f"edu_{uuid.uuid4().hex[:8]}",
+                    "institution": inst,
+                    "degree": deg,
+                    "field_of_study": "",
+                    "start_year": "",
+                    "end_year": year_str
+                })
+                if len(education) >= 3:
+                    break
                 
     return {
         "full_name": full_name,
@@ -189,9 +220,14 @@ class ProfileService:
         result = await db.execute(select(MasterProfile).where(MasterProfile.user_email == user_id))
         profile = result.scalars().first()
         if not profile:
+            from app.models.user import User as UserModel
+            user_res = await db.execute(select(UserModel).where(UserModel.email == user_id))
+            user_obj = user_res.scalars().first()
+            default_name = (user_obj.full_name if user_obj and user_obj.full_name else "Candidate")
+
             profile = MasterProfile(
                 user_email=user_id,
-                full_name="Candidate",
+                full_name=default_name,
                 title="",
                 email=user_id,
                 phone="",
@@ -414,14 +450,28 @@ class ProfileService:
             result_data = json.loads(response_text)
         except Exception as e:
             print(f"[Parser Fallback] AI parser unavailable ({e}), using instant local rule-based extractor...")
-            result_data = _extract_profile_rule_based(raw_text, current_user)
+            result_data = _extract_profile_rule_based(raw_text, current_user, filename=filename)
         
         # 3. Save to database safely without erasing existing data if parse is empty
         profile = await ProfileService.get_or_create_profile(db, current_user)
-        profile.email = result_data.get("email") or profile.email
-        profile.phone = result_data.get("phone") or profile.phone
-        profile.location = result_data.get("location") or profile.location
-        profile.bio = result_data.get("bio") or profile.bio
+        extracted_name = result_data.get("full_name") or ""
+        if not extracted_name or extracted_name == "Candidate":
+            from_file = _extract_name_from_filename(filename)
+            if from_file:
+                extracted_name = from_file
+        if extracted_name and extracted_name != "Candidate":
+            profile.full_name = extracted_name
+
+        if result_data.get("title") and result_data["title"].strip():
+            profile.title = result_data["title"]
+        if result_data.get("email") and result_data["email"].strip():
+            profile.email = result_data["email"]
+        if result_data.get("phone") and result_data["phone"].strip():
+            profile.phone = result_data["phone"]
+        if result_data.get("location") and result_data["location"].strip():
+            profile.location = result_data["location"]
+        if result_data.get("bio") and result_data["bio"].strip():
+            profile.bio = result_data["bio"]
         
         if result_data.get("experiences"):
             profile.experiences = result_data["experiences"]
@@ -471,7 +521,7 @@ class ProfileService:
         prompt = f'''
         You are an expert ATS parser. Extract the full profile from this raw LinkedIn HTML.
         LinkedIn heavily obfuscates their HTML, so look for JSON-LD scripts or basic text blocks.
-        Structure the experiences, education, and skills. Be highly accurate.
+        Structure the candidate name, title, experiences, education, and skills. Be highly accurate.
         If you hit an Authwall or cannot find data, return empty structures.
         
         RAW HTML:
@@ -489,11 +539,19 @@ class ProfileService:
         
         # Save to database safely without erasing existing data if parse is empty
         profile = await ProfileService.get_or_create_profile(db, current_user)
-        profile.full_name = result_data.get("full_name") or profile.full_name
-        profile.title = result_data.get("title") or profile.title
-        profile.email = result_data.get("email") or profile.email
-        profile.phone = result_data.get("phone") or profile.phone
-        profile.location = result_data.get("location") or profile.location
+        if result_data.get("full_name") and result_data["full_name"].strip() and result_data["full_name"] != "Candidate":
+            profile.full_name = result_data["full_name"]
+        if result_data.get("title") and result_data["title"].strip():
+            profile.title = result_data["title"]
+        if result_data.get("email") and result_data["email"].strip():
+            profile.email = result_data["email"]
+        if result_data.get("phone") and result_data["phone"].strip():
+            profile.phone = result_data["phone"]
+        if result_data.get("location") and result_data["location"].strip():
+            profile.location = result_data["location"]
+        if result_data.get("bio") and result_data["bio"].strip():
+            profile.bio = result_data["bio"]
+        profile.linkedin_url = url
         
         if result_data.get("experiences"):
             profile.experiences = result_data["experiences"]

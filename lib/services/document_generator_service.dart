@@ -59,7 +59,9 @@ class DocumentGeneratorService {
                 ),
                 pw.SizedBox(height: 2),
                 pw.Text(
-                  application.candidateName,
+                  [application.email, application.phone, application.location]
+                      .where((s) => s.isNotEmpty)
+                      .join(' • '),
                   style: pw.TextStyle(
                     font: fontRegular,
                     fontSize: 9.5,
@@ -72,7 +74,7 @@ class DocumentGeneratorService {
 
                 // Recipient & Date
                 pw.Text(
-                  'August 30, 2026\n\nHiring Team\n${application.targetCompany}\nRe: Application for ${application.jobTitle}',
+                  '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}\n\nHiring Team\n${application.targetCompany}\nRe: Application for ${application.jobTitle}',
                   style: pw.TextStyle(
                     font: fontSemiBold,
                     fontSize: 10.5,
@@ -121,6 +123,10 @@ class DocumentGeneratorService {
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(36),
           build: (pw.Context context) {
+            final contactSubtitle = [application.email, application.phone, application.location]
+                .where((s) => s.isNotEmpty)
+                .join(' • ');
+
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -137,15 +143,17 @@ class DocumentGeneratorService {
                           color: PdfColors.grey900,
                         ),
                       ),
-                      pw.SizedBox(height: 3),
-                      pw.Text(
-                        application.candidateName,
-                        style: pw.TextStyle(
-                          font: fontRegular,
-                          fontSize: 9.5,
-                          color: PdfColors.grey700,
+                      if (contactSubtitle.isNotEmpty) ...[
+                        pw.SizedBox(height: 3),
+                        pw.Text(
+                          contactSubtitle,
+                          style: pw.TextStyle(
+                            font: fontRegular,
+                            fontSize: 9.5,
+                            color: PdfColors.grey700,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -154,31 +162,35 @@ class DocumentGeneratorService {
                 pw.SizedBox(height: 8),
 
                 // Professional Summary
-                _buildPdfSectionTitle('PROFESSIONAL SUMMARY', fontBold),
-                pw.SizedBox(height: 4),
-                pw.Text(
-                  application.bio.isNotEmpty ? application.bio : 'Professional software engineer dedicated to building scalable systems.',
-                  style: pw.TextStyle(
-                    font: fontRegular,
-                    fontSize: 9.5,
-                    lineSpacing: 2,
-                    color: PdfColors.grey900,
+                if (application.bio.isNotEmpty) ...[
+                  _buildPdfSectionTitle('PROFESSIONAL SUMMARY', fontBold),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    application.bio,
+                    style: pw.TextStyle(
+                      font: fontRegular,
+                      fontSize: 9.5,
+                      lineSpacing: 2,
+                      color: PdfColors.grey900,
+                    ),
                   ),
-                ),
-                pw.SizedBox(height: 10),
+                  pw.SizedBox(height: 10),
+                ],
 
-                // Core Technical Skills
-                _buildPdfSectionTitle('CORE TECHNICAL SKILLS', fontBold),
-                pw.SizedBox(height: 4),
-                pw.Text(
-                  '• Technical Frameworks & Languages: ${application.matchedKeywords.join(", ")}',
-                  style: pw.TextStyle(
-                    font: fontRegular,
-                    fontSize: 9.5,
-                    color: PdfColors.grey900,
+                // Core Skills
+                if (application.matchedKeywords.isNotEmpty) ...[
+                  _buildPdfSectionTitle('CORE TECHNICAL SKILLS', fontBold),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '• Languages & Frameworks: ${application.matchedKeywords.join(", ")}',
+                    style: pw.TextStyle(
+                      font: fontRegular,
+                      fontSize: 9.5,
+                      color: PdfColors.grey900,
+                    ),
                   ),
-                ),
-                pw.SizedBox(height: 10),
+                  pw.SizedBox(height: 10),
+                ],
 
                 // Work Experience
                 _buildPdfSectionTitle('WORK EXPERIENCE', fontBold),
@@ -195,7 +207,7 @@ class DocumentGeneratorService {
                             pw.Text(
                               '${sec.role} — ${sec.company}',
                               style: pw.TextStyle(
-                                font: fontBold,
+                                font: fontSemiBold,
                                 fontSize: 10,
                                 color: PdfColors.grey900,
                               ),
@@ -241,29 +253,18 @@ class DocumentGeneratorService {
                 }),
 
                 // Education
-                _buildPdfSectionTitle('EDUCATION', fontBold),
-                pw.SizedBox(height: 4),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      application.education.isNotEmpty ? application.education : 'B.S. in Computer Science',
-                      style: pw.TextStyle(
-                        font: fontSemiBold,
-                        fontSize: 9.5,
-                        color: PdfColors.grey900,
-                      ),
+                if (application.education.isNotEmpty) ...[
+                  _buildPdfSectionTitle('EDUCATION', fontBold),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    application.education,
+                    style: pw.TextStyle(
+                      font: fontSemiBold,
+                      fontSize: 9.5,
+                      color: PdfColors.grey900,
                     ),
-                    pw.Text(
-                      '',
-                      style: pw.TextStyle(
-                        font: fontRegular,
-                        fontSize: 9,
-                        color: PdfColors.grey700,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ],
             );
           },
@@ -318,16 +319,28 @@ class DocumentGeneratorService {
   <w:body>
 ''');
 
+    final contactSubtitle = [application.email, application.phone, application.location]
+        .where((s) => s.isNotEmpty)
+        .join(' • ');
+
     // Title / Name
     buffer.write('''
     <w:p>
       <w:pPr><w:jc w:val="center"/></w:pPr>
       <w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t>${application.candidateName.toUpperCase()}</w:t></w:r>
     </w:p>
+''');
+
+    if (contactSubtitle.isNotEmpty) {
+      buffer.write('''
     <w:p>
       <w:pPr><w:jc w:val="center"/></w:pPr>
-      <w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>${application.jobTitle}</w:t></w:r>
+      <w:r><w:rPr><w:sz w:val="19"/></w:rPr><w:t>$contactSubtitle</w:t></w:r>
     </w:p>
+''');
+    }
+
+    buffer.write('''
     <w:p><w:r><w:t></w:t></w:r></w:p>
 ''');
 
@@ -341,11 +354,13 @@ class DocumentGeneratorService {
     }
 
     // Skills
-    buffer.write('''
+    if (application.matchedKeywords.isNotEmpty) {
+      buffer.write('''
     <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t>CORE TECHNICAL SKILLS</w:t></w:r></w:p>
     <w:p><w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t>• Languages &amp; Frameworks: ${application.matchedKeywords.join(", ")}</w:t></w:r></w:p>
     <w:p><w:r><w:t></w:t></w:r></w:p>
 ''');
+    }
 
     // Experience
     buffer.write('''
@@ -370,11 +385,17 @@ class DocumentGeneratorService {
       }
     }
 
-    // Close document
-    buffer.write('''
+    // Education
+    if (application.education.isNotEmpty) {
+      buffer.write('''
     <w:p><w:r><w:t></w:t></w:r></w:p>
     <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t>EDUCATION</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t>${application.education.isNotEmpty ? application.education : 'B.S. in Computer Science'}</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t>${application.education}</w:t></w:r></w:p>
+''');
+    }
+
+    // Close document
+    buffer.write('''
   </w:body>
 </w:document>
 ''');

@@ -74,6 +74,15 @@ async def generate_cv(payload: Dict[Any, Any] = Body(...)):
     name_match = re.search(r"Name:\s*(.*)", user_profile_data)
     candidate_name = name_match.group(1).strip() if name_match else "Candidate"
     
+    email_match = re.search(r"Email:\s*(.*)", user_profile_data)
+    email = email_match.group(1).strip() if email_match else ""
+
+    phone_match = re.search(r"Phone:\s*(.*)", user_profile_data)
+    phone = phone_match.group(1).strip() if phone_match else ""
+
+    loc_match = re.search(r"Location:\s*(.*)", user_profile_data)
+    location = loc_match.group(1).strip() if loc_match else ""
+
     bio_match = re.search(r"Bio:\s*(.*)", user_profile_data)
     bio = bio_match.group(1).strip() if bio_match else ""
     
@@ -140,6 +149,9 @@ async def generate_cv(payload: Dict[Any, Any] = Body(...)):
     return {
         "id": f"app_{uuid.uuid4().hex[:8]}",
         "candidate_name": candidate_name,
+        "email": email,
+        "phone": phone,
+        "location": location,
         "job_title": job_title,
         "target_company": target_company,
         "tone": tone,
