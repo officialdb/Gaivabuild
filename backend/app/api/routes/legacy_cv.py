@@ -31,6 +31,8 @@ class TailoringResult(BaseModel):
     missing_keywords: List[str] = Field(description="Crucial keywords from the JD that are completely missing in the resume.")
     sections: List[TailoredSectionOutput] = Field(description="The tailored work experience sections matching the original resume structure.")
 
+FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+
 def _call_gemini_sync(prompt: str) -> str:
     last_error = None
     for model_name in FALLBACK_MODELS:
@@ -42,6 +44,34 @@ def _call_gemini_sync(prompt: str) -> str:
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
                         response_schema=TailoringResult,
+                        temperature=0.7,
+                    ),
+                )
+                if response.text and response.text.strip():
+                    return response.text
+            except Exception as e:
+                last_error = e
+                err_msg = str(e)
+                print(f"[Gemini CV Fallback] Model '{model_name}' attempt {attempt + 1} failed: {err_msg}")
+                if "503" in err_msg or "high demand" in err_msg.lower() or "429" in err_msg:
+                    import time
+                    time.sleep(1.0)
+                    continue
+                else:
+                    break
+    if last_error:
+        raise last_error
+    return ""
+
+@router.post("/generate-cv")
+async def generate_cv(payload: Dict[Any, Any] = Body(...)):
+    job_title = str(payload.get("job_title") or "Target Role")
+    target_company = str(payload.get("target_company") or "Target Company")
+    user_profile_data = str(payload.get("user_profile_data") or "")
+    raw_jd = str(payload.get("raw_jd") or "")
+    tone = str(payload.get("tone") or "Professional")
+
+    name_match = re.search(r"Name:\s*(.*)", user_profile_data)
     candidate_name = name_match.group(1).strip() if name_match else "Candidate"
     
     bio_match = re.search(r"Bio:\s*(.*)", user_profile_data)
