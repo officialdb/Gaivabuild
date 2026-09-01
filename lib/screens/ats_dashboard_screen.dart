@@ -30,17 +30,10 @@ class _AtsDashboardScreenState extends State<AtsDashboardScreen> {
       final updatedMatched = List<String>.from(_app.matchedKeywords)..add(skill);
       final newScore = (_app.atsMatchScore + 4).clamp(0, 98);
 
-      _app = TailoredJobApplication(
-        id: _app.id,
-        jobTitle: _app.jobTitle,
-        targetCompany: _app.targetCompany,
-        rawJobDescription: _app.rawJobDescription,
-        tone: _app.tone,
+      _app = _app.copyWith(
         atsMatchScore: newScore,
         matchedKeywords: updatedMatched,
         missingKeywords: updatedMissing,
-        sections: _app.sections,
-        createdAt: _app.createdAt,
       );
     });
 

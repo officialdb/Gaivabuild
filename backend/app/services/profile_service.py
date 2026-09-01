@@ -420,8 +420,26 @@ class ProfileService:
         elif safe_filename.endswith('.docx'):
             try:
                 doc = Document(io.BytesIO(file_bytes))
+                # 1. Header paragraphs from all sections
+                for section in doc.sections:
+                    if section.header:
+                        for p in section.header.paragraphs:
+                            if p.text.strip():
+                                raw_text += p.text + "\n"
+                # 2. Main body paragraphs
                 for para in doc.paragraphs:
-                    raw_text += para.text + "\n"
+                    if para.text.strip():
+                        raw_text += para.text + "\n"
+                # 3. Table cells (crucial for modern 2-column resume templates)
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_texts = []
+                        for cell in row.cells:
+                            cell_text = "\n".join(p.text.strip() for p in cell.paragraphs if p.text.strip())
+                            if cell_text and cell_text not in row_texts:
+                                row_texts.append(cell_text)
+                        if row_texts:
+                            raw_text += " | ".join(row_texts) + "\n"
             except Exception as e:
                 print(f"python-docx error: {e}")
         else:
@@ -435,9 +453,17 @@ class ProfileService:
 
         # 2. Call Gemini asynchronously to parse and structure the text
         prompt = f"""
-        You are an expert ATS parser. Extract the full profile from this raw resume text.
-        Structure the experiences, education, and skills. Be highly accurate.
-        If dates are missing, use empty strings. If details are missing, leave them empty.
+        You are an expert ATS resume parser.
+        Your task is to accurately extract ALL profile information from the raw resume text into the required JSON schema.
+        
+        CRITICAL EXTRACTION REQUIREMENTS:
+        1. "full_name": Extract the candidate's actual personal name from the resume header (usually at the very top or in the filename header). Do NOT return generic placeholders like "Candidate" or "User".
+        2. "title": Extract the candidate's current or target job title/headline (e.g. "Full-Stack Engineer", "Software Architect").
+        3. "email", "phone", "location": Extract all contact information.
+        4. "bio": Extract or construct a concise 1-2 sentence professional summary of the candidate.
+        5. "education": Extract all degree programs, universities/colleges, fields of study, and graduation years. Be thorough and capture every educational qualification.
+        6. "experiences": Extract all work experience entries with company names, job titles, start and end dates, and individual bullet point accomplishments.
+        7. "skills": Extract all technical skills, frameworks, tools, and languages mentioned.
         
         RAW RESUME TEXT:
         {raw_text[:30000]}

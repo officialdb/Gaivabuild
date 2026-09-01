@@ -35,6 +35,44 @@ class TailoredJobApplication {
     required this.createdAt,
   });
 
+  TailoredJobApplication copyWith({
+    String? id,
+    String? candidateName,
+    String? email,
+    String? phone,
+    String? location,
+    String? bio,
+    String? education,
+    String? jobTitle,
+    String? targetCompany,
+    String? rawJobDescription,
+    String? tone,
+    int? atsMatchScore,
+    List<String>? matchedKeywords,
+    List<String>? missingKeywords,
+    List<TailoredSection>? sections,
+    DateTime? createdAt,
+  }) {
+    return TailoredJobApplication(
+      id: id ?? this.id,
+      candidateName: candidateName ?? this.candidateName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      location: location ?? this.location,
+      bio: bio ?? this.bio,
+      education: education ?? this.education,
+      jobTitle: jobTitle ?? this.jobTitle,
+      targetCompany: targetCompany ?? this.targetCompany,
+      rawJobDescription: rawJobDescription ?? this.rawJobDescription,
+      tone: tone ?? this.tone,
+      atsMatchScore: atsMatchScore ?? this.atsMatchScore,
+      matchedKeywords: matchedKeywords ?? this.matchedKeywords,
+      missingKeywords: missingKeywords ?? this.missingKeywords,
+      sections: sections ?? this.sections,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   factory TailoredJobApplication.fromJson(Map<String, dynamic> json) {
     return TailoredJobApplication(
       id: json['id'] as String? ?? 'app_${DateTime.now().millisecondsSinceEpoch}',
