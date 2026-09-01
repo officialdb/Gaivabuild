@@ -20,9 +20,16 @@ class AiTailoringService {
     final userProfileData = '''
 Name: ${masterProfile.fullName}
 Title: ${masterProfile.title}
+Bio: ${masterProfile.bio.isNotEmpty ? masterProfile.bio : 'Candidate Bio'}
+Education: ${masterProfile.education.isNotEmpty ? masterProfile.education.map((e) => "${e.degree} at ${e.institution} (${e.startYear}-${e.endYear})").join(" | ") : 'B.S. Computer Science'}
 Skills: ${masterProfile.skills.map((s) => s.name).join(", ")}
 Work Experiences:
-${masterProfile.experiences.map((exp) => "Role: ${exp.title} at ${exp.company} (${exp.startDate} - ${exp.endDate})\nBullets:\n${exp.bullets.map((b) => "- ${b.text}").join("\n")}").join("\n\n")}
+${masterProfile.experiences.map((exp) => "Role: ${exp.title} at ${exp.company} (${exp.startDate} - ${exp.endDate})
+Bullets:
+${exp.bullets.map((b) => "- ${b.text}").join("
+")}").join("
+
+")}
 ''';
 
     try {

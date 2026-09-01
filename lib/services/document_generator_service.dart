@@ -157,7 +157,7 @@ class DocumentGeneratorService {
                 _buildPdfSectionTitle('PROFESSIONAL SUMMARY', fontBold),
                 pw.SizedBox(height: 4),
                 pw.Text(
-                  'Lead Mobile Architect with 6+ years of specialized experience in high-concurrency cross-platform Flutter systems, PostgreSQL data modeling, and automated CI/CD deployment pipelines. Proven track record scaling applications to 1.2M+ active users with 99.9% crash-free reliability.',
+                  application.bio.isNotEmpty ? application.bio : 'Professional software engineer dedicated to building scalable systems.',
                   style: pw.TextStyle(
                     font: fontRegular,
                     fontSize: 9.5,
@@ -247,7 +247,7 @@ class DocumentGeneratorService {
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Text(
-                      'B.S. in Computer Science — University of Texas at Austin',
+                      application.education.isNotEmpty ? application.education : 'B.S. in Computer Science',
                       style: pw.TextStyle(
                         font: fontSemiBold,
                         fontSize: 9.5,
@@ -255,7 +255,7 @@ class DocumentGeneratorService {
                       ),
                     ),
                     pw.Text(
-                      '2016 - 2020',
+                      '',
                       style: pw.TextStyle(
                         font: fontRegular,
                         fontSize: 9,
@@ -372,7 +372,7 @@ class DocumentGeneratorService {
     buffer.write('''
     <w:p><w:r><w:t></w:t></w:r></w:p>
     <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t>EDUCATION</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t>B.S. in Computer Science — University of Texas at Austin (2016 - 2020)</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t>${application.education.isNotEmpty ? application.education : 'B.S. in Computer Science'}</w:t></w:r></w:p>
   </w:body>
 </w:document>
 ''');

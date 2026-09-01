@@ -1,6 +1,8 @@
 class TailoredJobApplication {
   final String id;
   final String candidateName;
+  final String bio;
+  final String education;
   final String jobTitle;
   final String targetCompany;
   final String rawJobDescription;
@@ -14,6 +16,8 @@ class TailoredJobApplication {
   TailoredJobApplication({
     required this.id,
     this.candidateName = 'Candidate',
+    this.bio = '',
+    this.education = '',
     required this.jobTitle,
     required this.targetCompany,
     required this.rawJobDescription,
@@ -29,6 +33,8 @@ class TailoredJobApplication {
     return TailoredJobApplication(
       id: json['id'] as String? ?? 'app_${DateTime.now().millisecondsSinceEpoch}',
       candidateName: json['candidate_name'] as String? ?? json['candidateName'] as String? ?? 'Candidate',
+      bio: json['bio'] as String? ?? '',
+      education: json['education'] as String? ?? '',
       jobTitle: json['job_title'] as String? ?? json['jobTitle'] as String? ?? 'Target Role',
       targetCompany: json['target_company'] as String? ?? json['targetCompany'] as String? ?? 'Target Company',
       rawJobDescription: json['raw_jd'] as String? ?? json['rawJobDescription'] as String? ?? '',
@@ -54,6 +60,8 @@ class TailoredJobApplication {
       'id': id,
       'job_title': jobTitle,
       'target_company': targetCompany,
+      'bio': bio,
+      'education': education,
       'raw_jd': rawJobDescription,
       'tone': tone,
       'ats_match_score': atsMatchScore,

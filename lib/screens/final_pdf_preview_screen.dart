@@ -417,7 +417,7 @@ class _CvDocumentLayout extends StatelessWidget {
         const _CvSectionTitle(title: 'PROFESSIONAL SUMMARY'),
         const SizedBox(height: 4),
         const Text(
-          'Lead Mobile Architect with 6+ years of specialized experience in high-concurrency cross-platform Flutter systems, PostgreSQL data modeling, and automated CI/CD deployment pipelines. Proven track record scaling applications to 1.2M+ active users with 99.9% crash-free reliability.',
+          widget.application.bio.isNotEmpty ? widget.application.bio : 'Professional software engineer dedicated to building scalable systems.',
           style: TextStyle(
             color: AppTheme.textPrimaryLight,
             fontSize: 10.5,
@@ -514,7 +514,7 @@ class _CvDocumentLayout extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'B.S. in Computer Science — University of Texas at Austin',
+                widget.application.education.isNotEmpty ? widget.application.education : 'B.S. in Computer Science',
                 style: TextStyle(
                   color: AppTheme.textPrimaryLight,
                   fontSize: 10.5,
@@ -524,7 +524,7 @@ class _CvDocumentLayout extends StatelessWidget {
             ),
             SizedBox(width: 8),
             Text(
-              '2016 - 2020',
+              '',
               style: TextStyle(
                 color: AppTheme.textSecondaryLight,
                 fontSize: 9.5,
