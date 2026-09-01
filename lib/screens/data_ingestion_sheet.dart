@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'parsing_state_screen.dart';
-import 'profile_dashboard_screen.dart';
 
 class DataIngestionBottomSheet extends StatefulWidget {
   final VoidCallback? onBuildManually;
@@ -47,7 +46,17 @@ class _DataIngestionBottomSheetState extends State<DataIngestionBottomSheet> {
         }
       }
 
-      bytes ??= [37, 80, 68, 70, 45, 49, 46, 55];
+      if (bytes == null || bytes.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not read file data. Please try again with another file.'),
+              backgroundColor: AppTheme.danger,
+            ),
+          );
+        }
+        return;
+      }
 
       setState(() => _isUploading = true);
 
@@ -121,15 +130,16 @@ class _DataIngestionBottomSheetState extends State<DataIngestionBottomSheet> {
           ),
           ElevatedButton(
             onPressed: () {
-              final url = urlCtrl.text.trim();
-              if (url.isEmpty || (!url.contains('linkedin.com/in/') && !url.contains('linkedin.com/pub/'))) {
+              final rawUrl = urlCtrl.text.trim();
+              if (rawUrl.isEmpty || (!rawUrl.contains('linkedin.com/in/') && !rawUrl.contains('linkedin.com/pub/'))) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid LinkedIn Profile URL', style: TextStyle(color: Colors.white))));
                 return;
               }
+              final formattedUrl = rawUrl.startsWith('http') ? rawUrl : 'https://$rawUrl';
               Navigator.pop(ctx); // Close dialog
               Navigator.of(context).pop(); // Close bottom sheet
               Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => ParsingStateScreen(sourceName: url, bytes: null),
+                builder: (context) => ParsingStateScreen(sourceName: formattedUrl, bytes: null),
               ));
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.cobaltBlue),
@@ -240,56 +250,6 @@ class _IngestionCard extends StatelessWidget {
     this.isLoading = false,
     required this.onTap,
   });
-
-  void _openLinkedInDialog(BuildContext context) {
-    final urlCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Import from LinkedIn'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Paste your public LinkedIn profile URL below.',
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryLight),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlCtrl,
-              decoration: const InputDecoration(
-                labelText: 'LinkedIn URL',
-                prefixIcon: Icon(Icons.link),
-                hintText: 'https://linkedin.com/in/username',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final url = urlCtrl.text.trim();
-              if (url.isEmpty || (!url.contains('linkedin.com/in/') && !url.contains('linkedin.com/pub/'))) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid LinkedIn Profile URL', style: TextStyle(color: Colors.white))));
-                return;
-              }
-              Navigator.pop(ctx); // Close dialog
-              Navigator.of(context).pop(); // Close bottom sheet
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => ParsingStateScreen(sourceName: url, bytes: null),
-              ));
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.cobaltBlue),
-            child: const Text('Import', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

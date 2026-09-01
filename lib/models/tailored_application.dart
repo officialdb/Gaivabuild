@@ -39,7 +39,7 @@ class TailoredJobApplication {
       targetCompany: json['target_company'] as String? ?? json['targetCompany'] as String? ?? 'Target Company',
       rawJobDescription: json['raw_jd'] as String? ?? json['rawJobDescription'] as String? ?? '',
       tone: json['tone'] as String? ?? 'Professional',
-      atsMatchScore: (json['ats_match_score'] ?? json['atsMatchScore']) as int? ?? (throw Exception("Missing ATS Match Score in AI response")),
+      atsMatchScore: (json['ats_match_score'] as num? ?? json['atsMatchScore'] as num?)?.toInt() ?? 50,
       matchedKeywords: (json['matched_keywords'] as List? ?? json['matchedKeywords'] as List? ?? [])
           .map((e) => e.toString())
           .toList(),
@@ -47,7 +47,7 @@ class TailoredJobApplication {
           .map((e) => e.toString())
           .toList(),
       sections: (json['sections'] as List? ?? [])
-          .map((e) => TailoredSection.fromJson(e as Map<String, dynamic>))
+          .map((e) => TailoredSection.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
@@ -58,6 +58,7 @@ class TailoredJobApplication {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'candidate_name': candidateName,
       'job_title': jobTitle,
       'target_company': targetCompany,
       'bio': bio,
@@ -92,7 +93,7 @@ class TailoredSection {
       role: json['role'] as String? ?? 'Role',
       dateRange: json['date_range'] as String? ?? json['dateRange'] as String? ?? '',
       bullets: (json['bullets'] as List? ?? [])
-          .map((e) => TailoredBullet.fromJson(e as Map<String, dynamic>))
+          .map((e) => TailoredBullet.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
     );
   }

@@ -48,9 +48,14 @@ class _ExportActionsBottomSheetState extends State<ExportActionsBottomSheet> {
       final app = _effectiveApplication;
       final letter = _effectiveCoverLetter;
 
+      final sanitizedCandidate = (app.candidateName.isNotEmpty && app.candidateName != 'Candidate'
+              ? app.candidateName
+              : 'Resume')
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(' ', '_');
       final sanitizedCompany = widget.companyName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
       final sanitizedRole = widget.roleName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
-      final baseName = 'Alex_Morgan_${sanitizedRole}_$sanitizedCompany';
+      final baseName = '${sanitizedCandidate}_${sanitizedRole}_$sanitizedCompany';
 
       if (_selectedFormat == ExportFormat.pdf) {
         final pdfBytes = await DocumentGeneratorService.generatePdf(

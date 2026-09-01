@@ -15,7 +15,11 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),

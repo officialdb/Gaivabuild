@@ -110,11 +110,11 @@ class MasterProfile {
       githubUrl: json['github_url'] as String? ?? json['githubUrl'] as String?,
       portfolioUrl: json['portfolio_url'] as String? ?? json['portfolioUrl'] as String?,
       experiences: (json['experiences'] as List?)
-              ?.map((e) => WorkExperience.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => WorkExperience.fromJson(Map<String, dynamic>.from(e as Map)))
               .toList() ??
           [],
       education: (json['education'] as List?)
-              ?.map((ed) => EducationEntry.fromJson(ed as Map<String, dynamic>))
+              ?.map((ed) => EducationEntry.fromJson(Map<String, dynamic>.from(ed as Map)))
               .toList() ??
           [],
       skills: (json['skills'] as List?)?.map((s) {
@@ -122,7 +122,7 @@ class MasterProfile {
               return SkillItem(
                   id: 'sk_${s.hashCode}', name: s, category: SkillCategory.hard);
             }
-            return SkillItem.fromJson(s as Map<String, dynamic>);
+            return SkillItem.fromJson(Map<String, dynamic>.from(s as Map));
           }).toList() ??
           [],
     );
@@ -198,7 +198,7 @@ class WorkExperience {
             if (b is String) {
               return ExperienceBullet(id: 'b_${b.hashCode}', text: b);
             }
-            return ExperienceBullet.fromJson(b as Map<String, dynamic>);
+            return ExperienceBullet.fromJson(Map<String, dynamic>.from(b as Map));
           }).toList() ??
           [],
     );
@@ -291,8 +291,8 @@ class EducationEntry {
       institution: json['institution'] as String? ?? '',
       degree: json['degree'] as String? ?? '',
       fieldOfStudy: json['field_of_study'] as String? ?? json['fieldOfStudy'] as String? ?? '',
-      startYear: json['start_year'] as String? ?? json['startYear'] as String? ?? '',
-      endYear: json['end_year'] as String? ?? json['endYear'] as String? ?? '',
+      startYear: json['start_year']?.toString() ?? json['startYear']?.toString() ?? '',
+      endYear: json['end_year']?.toString() ?? json['endYear']?.toString() ?? '',
       gradeOrHonors: json['grade_or_honors'] as String? ?? json['gradeOrHonors'] as String?,
     );
   }

@@ -1,14 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/master_profile.dart';
 import '../models/tailored_application.dart';
+import 'auth_service.dart';
 
 class AiTailoringService {
-  static final String baseUrl = !kIsWeb && Platform.isAndroid 
-      ? 'https://gaivabuild-production.up.railway.app' 
-      : 'https://gaivabuild-production.up.railway.app';
+  static final String baseUrl = 'https://gaivabuild-production.up.railway.app';
 
   static Future<TailoredJobApplication> generateTailoredApplication({
     required String jobTitle,
@@ -17,6 +14,15 @@ class AiTailoringService {
     required MasterProfile masterProfile,
     String tone = 'Professional',
   }) async {
+    final token = AuthService().currentSession?.accessToken;
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
     final userProfileData = '''
 Name: ${masterProfile.fullName}
 Title: ${masterProfile.title}
@@ -30,10 +36,7 @@ ${masterProfile.experiences.map((exp) => "Role: ${exp.title} at ${exp.company} (
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/generate-cv'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode({
           'job_title': jobTitle,
           'target_company': company,
@@ -41,10 +44,14 @@ ${masterProfile.experiences.map((exp) => "Role: ${exp.title} at ${exp.company} (
           'raw_jd': rawJd,
           'user_profile_data': userProfileData,
         }),
-      );
+      ).timeout(const Duration(seconds: 45));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final parsedContent = jsonDecode(response.body) as Map<String, dynamic>;
+        final decoded = jsonDecode(response.body);
+        if (decoded is! Map<String, dynamic>) {
+          throw Exception('Invalid server response format');
+        }
+        final parsedContent = Map<String, dynamic>.from(decoded);
         parsedContent['raw_jd'] = rawJd;
         parsedContent['tone'] = tone;
         parsedContent['candidate_name'] = masterProfile.fullName;

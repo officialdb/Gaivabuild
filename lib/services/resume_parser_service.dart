@@ -44,12 +44,15 @@ class ResumeParserService {
       ),
     );
 
-    final streamedResponse = await request.send();
+    final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
-      return MasterProfile.fromJson(jsonMap);
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Invalid response format from parser server');
+      }
+      return MasterProfile.fromJson(Map<String, dynamic>.from(decoded));
     } else {
       throw Exception('Failed to parse CV on backend: ${response.statusCode} - ${response.body}');
     }
@@ -67,11 +70,14 @@ class ResumeParserService {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({'url': linkedinUrl}),
-    );
+    ).timeout(const Duration(seconds: 45));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
-      return MasterProfile.fromJson(jsonMap);
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Invalid response format from LinkedIn parser');
+      }
+      return MasterProfile.fromJson(Map<String, dynamic>.from(decoded));
     } else {
       throw Exception('Failed to parse LinkedIn: ${response.statusCode} - ${response.body}');
     }

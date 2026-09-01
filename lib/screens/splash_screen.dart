@@ -57,8 +57,13 @@ class _SplashScreenState extends State<SplashScreen>
     _navigationTimer = Timer(const Duration(milliseconds: 2300), _navigateToAuth);
   }
 
+  bool _isNavigating = false;
+
   void _navigateToAuth() async {
-    if (!mounted) return;
+    if (_isNavigating || !mounted) return;
+    _isNavigating = true;
+    _navigationTimer?.cancel();
+    
     await AuthService().initSession();
 
     if (!mounted) return;

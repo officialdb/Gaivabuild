@@ -11,9 +11,9 @@ class ProfileDetails(BaseModel):
     bio: Optional[str] = None
 
 class ProfileLinks(BaseModel):
-    linkedin_url: Optional[HttpUrl] = None
-    github_url: Optional[HttpUrl] = None
-    portfolio_url: Optional[HttpUrl] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
 
 class Bullet(BaseModel):
     id: str
@@ -46,7 +46,7 @@ class SkillCategoryEnum(str, Enum):
 class SkillItem(BaseModel):
     id: str
     name: str
-    category: SkillCategoryEnum
+    category: Optional[str] = "hard"
 
 class FullProfile(BaseModel):
     id: str
@@ -56,9 +56,9 @@ class FullProfile(BaseModel):
     phone: str
     location: str
     bio: str
-    linkedin_url: Optional[HttpUrl] = None
-    github_url: Optional[HttpUrl] = None
-    portfolio_url: Optional[HttpUrl] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
     experiences: List[Experience] = []
     education: List[Education] = []
     skills: List[SkillItem] = []

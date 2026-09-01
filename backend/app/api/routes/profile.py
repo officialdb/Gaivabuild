@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Body
 from app.api.dependencies import get_current_user, get_db
 from typing import List, Any
 from app.schemas.profile import FullProfile, ProfileDetails, ProfileLinks, Experience, Education, SkillItem
@@ -12,9 +12,38 @@ async def get_profile(current_user: str = Depends(get_current_user), db = Depend
     return [profile]
 
 @router.post("", response_model=List[Any])
-async def upsert_profile(data: List[Any], current_user: str = Depends(get_current_user), db = Depends(get_db)):
-    # Legacy Supabase upsert simulation
-    return data
+async def upsert_profile(data: Any = Body(...), current_user: str = Depends(get_current_user), db = Depends(get_db)):
+    # Support both list and dict payloads
+    payload = data[0] if isinstance(data, list) and len(data) > 0 else data if isinstance(data, dict) else {}
+    if payload:
+        profile = await ProfileService.get_or_create_profile(db, current_user)
+        if "full_name" in payload and payload["full_name"]:
+            profile.full_name = payload["full_name"]
+        if "title" in payload and payload["title"] is not None:
+            profile.title = payload["title"]
+        if "phone" in payload and payload["phone"] is not None:
+            profile.phone = payload["phone"]
+        if "location" in payload and payload["location"] is not None:
+            profile.location = payload["location"]
+        if "bio" in payload and payload["bio"] is not None:
+            profile.bio = payload["bio"]
+        if "linkedin_url" in payload:
+            profile.linkedin_url = str(payload["linkedin_url"] or "")
+        if "github_url" in payload:
+            profile.github_url = str(payload["github_url"] or "")
+        if "portfolio_url" in payload:
+            profile.portfolio_url = str(payload["portfolio_url"] or "")
+        if "experiences" in payload and isinstance(payload["experiences"], list):
+            profile.experiences = payload["experiences"]
+        if "education" in payload and isinstance(payload["education"], list):
+            profile.education = payload["education"]
+        if "skills" in payload and isinstance(payload["skills"], list):
+            profile.skills = payload["skills"]
+        await db.commit()
+        await db.refresh(profile)
+    
+    updated = await ProfileService.get_full_profile(db, current_user)
+    return [updated]
 
 @router.put("/details")
 async def update_details(data: ProfileDetails, current_user: str = Depends(get_current_user), db = Depends(get_db)):

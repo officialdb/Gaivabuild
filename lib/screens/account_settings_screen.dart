@@ -226,23 +226,33 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final currentPass = currentPassController.text;
+                final newPass = newPassController.text;
                 Navigator.of(ctx).pop();
                 try {
                   final res = await http.post(
                     Uri.parse('${AuthService.baseUrl}/api/v1/account/change-password'),
                     headers: _headers,
                     body: jsonEncode({
-                      'current_password': currentPassController.text,
-                      'new_password': newPassController.text,
+                      'current_password': currentPass,
+                      'new_password': newPass,
                     }),
                   );
-                  if (!ctx.mounted) return;
+                  if (!mounted) return;
                   if (res.statusCode >= 200 && res.statusCode < 300) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Password changed successfully!'), backgroundColor: AppTheme.accent));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed successfully!'), backgroundColor: AppTheme.accent));
                   } else {
-                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Failed to change password: ${jsonDecode(res.body)['detail'] ?? 'Error'}'), backgroundColor: AppTheme.danger));
+                    String detail = 'Error';
+                    try {
+                      detail = jsonDecode(res.body)['detail']?.toString() ?? 'Error';
+                    } catch (_) {}
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to change password: $detail'), backgroundColor: AppTheme.danger));
                   }
-                } catch (_) {}
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Network error: $e'), backgroundColor: AppTheme.danger));
+                  }
+                }
               }
             },
             child: const Text('Update Password'),
@@ -333,7 +343,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
-              await http.delete(Uri.parse('${AuthService.baseUrl}/api/v1/account'), headers: _headers);
               await AuthService().signOut();
               if (mounted) {
                 Navigator.of(context).pushAndRemoveUntil(

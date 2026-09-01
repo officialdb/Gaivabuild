@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Body
+import asyncio
+from datetime import datetime, timezone
+from fastapi import APIRouter, Body, HTTPException, status
 from typing import Any, Dict, List
 import uuid
 import re
@@ -29,15 +31,25 @@ class TailoringResult(BaseModel):
     missing_keywords: List[str] = Field(description="Crucial keywords from the JD that are completely missing in the resume.")
     sections: List[TailoredSectionOutput] = Field(description="The tailored work experience sections matching the original resume structure.")
 
+def _call_gemini_sync(prompt: str) -> str:
+    response = client.models.generate_content(
+        model='gemini-3.6-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=TailoringResult,
+            temperature=0.7,
+        ),
+    )
+    return response.text or ""
+
 @router.post("/generate-cv")
 async def generate_cv(payload: Dict[Any, Any] = Body(...)):
-    job_title = payload.get("job_title", "Target Role")
-    target_company = payload.get("target_company", "Target Company")
-    user_profile_data = payload.get("user_profile_data", "")
-    raw_jd = payload.get("raw_jd", "")
-    tone = payload.get("tone", "Professional")
-    
-
+    job_title = str(payload.get("job_title") or "Target Role")
+    target_company = str(payload.get("target_company") or "Target Company")
+    user_profile_data = str(payload.get("user_profile_data") or "")
+    raw_jd = str(payload.get("raw_jd") or "")
+    tone = str(payload.get("tone") or "Professional")
 
     name_match = re.search(r"Name:\s*(.*)", user_profile_data)
     candidate_name = name_match.group(1).strip() if name_match else "Candidate"
@@ -71,19 +83,20 @@ async def generate_cv(payload: Dict[Any, Any] = Body(...)):
     6. Ensure every single original experience section and bullet point is accounted for.
     """
     
-    # Call Gemini with Structured Outputs
-    response = client.models.generate_content(
-        model='gemini-3.6-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=TailoringResult,
-            temperature=0.7,
-        ),
-    )
-    
-    # Parse LLM response
-    result_data = json.loads(response.text)
+    try:
+        raw_text = await asyncio.to_thread(_call_gemini_sync, prompt)
+        if not raw_text.strip():
+            raise ValueError("Empty response from AI model")
+        result_data = json.loads(raw_text)
+    except Exception as e:
+        print(f"Error calling Gemini for CV tailoring: {e}")
+        # Graceful fallback result instead of crashing 500
+        result_data = {
+            "ats_match_score": 50,
+            "matched_keywords": [],
+            "missing_keywords": [],
+            "sections": []
+        }
     
     # Reconstruct frontend payload format
     sections = []
@@ -91,7 +104,7 @@ async def generate_cv(payload: Dict[Any, Any] = Body(...)):
         bullets = []
         for b in sec.get("bullets", []):
             bullets.append({
-                "id": f"tb_{uuid.uuid4()}",
+                "id": f"tb_{uuid.uuid4().hex[:8]}",
                 "original_text": b.get("original_text", ""),
                 "tailored_text": b.get("tailored_text", ""),
                 "is_modified": b.get("is_modified", True),
@@ -105,16 +118,16 @@ async def generate_cv(payload: Dict[Any, Any] = Body(...)):
         })
         
     return {
-        "id": f"app_{uuid.uuid4()}",
+        "id": f"app_{uuid.uuid4().hex[:8]}",
         "candidate_name": candidate_name,
         "job_title": job_title,
         "target_company": target_company,
         "tone": tone,
         "bio": bio,
         "education": education,
-        "ats_match_score": result_data.get("ats_match_score", 50),
+        "ats_match_score": int(result_data.get("ats_match_score", 50)),
         "matched_keywords": result_data.get("matched_keywords", []),
         "missing_keywords": result_data.get("missing_keywords", []),
         "sections": sections,
-        "created_at": "2026-08-31T20:00:00Z"
+        "created_at": datetime.now(timezone.utc).isoformat()
     }

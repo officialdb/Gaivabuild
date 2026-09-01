@@ -326,17 +326,19 @@ class DocumentGeneratorService {
     </w:p>
     <w:p>
       <w:pPr><w:jc w:val="center"/></w:pPr>
-      <w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>${application.candidateName}</w:t></w:r>
+      <w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>${application.jobTitle}</w:t></w:r>
     </w:p>
     <w:p><w:r><w:t></w:t></w:r></w:p>
 ''');
 
     // Professional Summary
-    buffer.write('''
+    if (application.bio.isNotEmpty) {
+      buffer.write('''
     <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t>PROFESSIONAL SUMMARY</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t>Lead Mobile Architect with 6+ years of specialized experience in high-concurrency cross-platform Flutter systems, PostgreSQL data modeling, and automated CI/CD deployment pipelines.</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:sz w:val="21"/></w:rPr><w:t>${application.bio}</w:t></w:r></w:p>
     <w:p><w:r><w:t></w:t></w:r></w:p>
 ''');
+    }
 
     // Skills
     buffer.write('''

@@ -25,6 +25,13 @@ class OfflineStoreService {
     }
   }
 
+  /// Clears the local cached Master Profile (used on sign-out)
+  static Future<void> clearCachedProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyProfile);
+    await prefs.remove(_keyPendingApps);
+  }
+
   /// Enqueues application generated while offline (flights / subways)
   static Future<void> queueOfflineApplication(TailoredJobApplication app) async {
     final prefs = await SharedPreferences.getInstance();

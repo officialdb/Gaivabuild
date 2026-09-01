@@ -360,6 +360,30 @@ class _CoverLetterDocumentLayout extends StatelessWidget {
             color: AppTheme.textSecondaryLight,
           ),
         ),
+        const SizedBox(height: 6),
+        Text(
+          'Dear Hiring Team at ${app.targetCompany.isNotEmpty ? app.targetCompany : 'the Organization'},',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimaryLight,
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Cover Letter Body Blocks
+        ...coverLetter.blocks.map((block) => Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Text(
+                block.content,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  height: 1.5,
+                  color: AppTheme.textPrimaryLight,
+                ),
+              ),
+            )),
+
         const SizedBox(height: 10),
         Text(
           'Sincerely,\n${app.candidateName}',

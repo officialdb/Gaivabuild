@@ -391,8 +391,9 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen>
           label: 'Undo',
           textColor: Colors.amber,
           onPressed: () {
-            final restoredList = List<EducationEntry>.from(_profile.education)
-              ..insert(index, deleted);
+            final restoredList = List<EducationEntry>.from(_profile.education);
+            final insertIdx = index.clamp(0, restoredList.length);
+            restoredList.insert(insertIdx, deleted);
             setState(() {
               _profile = _profile.copyWith(education: restoredList);
             });
@@ -493,8 +494,9 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen>
           label: 'Undo',
           textColor: Colors.amber,
           onPressed: () {
-            final restoredList = List<WorkExperience>.from(_profile.experiences)
-              ..insert(index, deletedExp);
+            final restoredList = List<WorkExperience>.from(_profile.experiences);
+            final insertIdx = index.clamp(0, restoredList.length);
+            restoredList.insert(insertIdx, deletedExp);
             setState(() {
               _profile = _profile.copyWith(experiences: restoredList);
             });
@@ -542,7 +544,7 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen>
             icon: const Icon(Icons.bolt_rounded, color: AppTheme.cobaltBlue),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const JobApplicationSetupScreen()),
+                MaterialPageRoute(builder: (context) => JobApplicationSetupScreen(masterProfile: _profile)),
               );
             },
           ),

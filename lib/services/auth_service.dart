@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/master_profile.dart';
+import 'offline_store_service.dart';
 
 class AppUser {
   final String id;
@@ -119,6 +120,7 @@ class AuthService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_prefTokenKey);
       await prefs.remove(_prefUserKey);
+      await OfflineStoreService.clearCachedProfile();
     } catch (_) {}
   }
 
@@ -248,7 +250,26 @@ class AuthService extends ChangeNotifier {
     final json = _safeParseJson(response.body);
 
     if (response.statusCode >= 200 && response.statusCode < 300 && json != null) {
-      final session = AppSession.fromJson(json);
+      final token = json['access_token'] as String? ?? json['accessToken'] as String? ?? '';
+      final refreshToken = json['refresh_token'] as String? ?? json['refreshToken'] as String? ?? '';
+      final expiresIn = json['expires_in'] as int? ?? json['expiresIn'] as int? ?? 3600;
+      
+      var user = AppUser.fromJson(json['user'] as Map<String, dynamic>? ?? {});
+      if (user.email.isEmpty) {
+        user = AppUser(
+          id: cleanEmail,
+          email: cleanEmail,
+          fullName: cleanEmail.split('@').first,
+          createdAt: DateTime.now(),
+        );
+      }
+
+      final session = AppSession(
+        accessToken: token,
+        refreshToken: refreshToken,
+        expiresIn: expiresIn,
+        user: user,
+      );
       await _persistSession(session);
       return _currentSession!;
     } else {
@@ -392,30 +413,34 @@ class AuthService extends ChangeNotifier {
       );
 
       final trimmed = response.body.trim();
-      if (response.statusCode >= 200 && response.statusCode < 300 && trimmed.startsWith('[')) {
-        final List list = jsonDecode(trimmed);
-        if (list.isEmpty) return null;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (trimmed.startsWith('{')) {
+          final decoded = jsonDecode(trimmed);
+          if (decoded is Map<String, dynamic>) return decoded;
+        } else if (trimmed.startsWith('[')) {
+          final List list = jsonDecode(trimmed);
+          if (list.isEmpty) return null;
 
-        Map<String, dynamic>? bestRecord;
+          Map<String, dynamic>? bestRecord;
 
-        // Search from most recent to oldest for record containing experiences/skills/education
-        for (final item in list.reversed) {
-          if (item is Map<String, dynamic>) {
-            final exps = item['experiences'] as List?;
-            final edus = item['education'] as List?;
-            final sks = item['skills'] as List?;
+          for (final item in list.reversed) {
+            if (item is Map<String, dynamic>) {
+              final exps = item['experiences'] as List?;
+              final edus = item['education'] as List?;
+              final sks = item['skills'] as List?;
 
-            if ((exps != null && exps.isNotEmpty) ||
-                (edus != null && edus.isNotEmpty) ||
-                (sks != null && sks.isNotEmpty)) {
-              bestRecord = item;
-              break;
+              if ((exps != null && exps.isNotEmpty) ||
+                  (edus != null && edus.isNotEmpty) ||
+                  (sks != null && sks.isNotEmpty)) {
+                bestRecord = item;
+                break;
+              }
             }
           }
-        }
 
-        bestRecord ??= list.last as Map<String, dynamic>;
-        return bestRecord;
+          bestRecord ??= list.last as Map<String, dynamic>;
+          return bestRecord;
+        }
       }
     } catch (_) {}
     return null;

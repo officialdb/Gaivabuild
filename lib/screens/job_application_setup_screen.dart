@@ -16,8 +16,8 @@ class JobApplicationSetupScreen extends StatefulWidget {
 
 class _JobApplicationSetupScreenState extends State<JobApplicationSetupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _jobTitleController = TextEditingController(text: 'Staff Flutter Engineer');
-  final _companyController = TextEditingController(text: 'Stripe Inc.');
+  final _jobTitleController = TextEditingController();
+  final _companyController = TextEditingController();
   final _jdController = TextEditingController();
 
   String _selectedTone = 'Professional';
@@ -71,11 +71,21 @@ class _JobApplicationSetupScreenState extends State<JobApplicationSetupScreen> {
     final profile = widget.masterProfile ??
         MasterProfile.empty();
 
+    if (profile.experiences.isEmpty && profile.skills.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Notice: Your Master Profile has no experiences or skills. Upload a resume or add them first for best results.'),
+          backgroundColor: AppTheme.warning,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => TailoringProcessingScreen(
-          jobTitle: _jobTitleController.text.trim(),
-          company: _companyController.text.trim(),
+          jobTitle: _jobTitleController.text.trim().isNotEmpty ? _jobTitleController.text.trim() : 'Target Role',
+          company: _companyController.text.trim().isNotEmpty ? _companyController.text.trim() : 'Target Company',
           jobDescription: _jdController.text.trim(),
           tone: _selectedTone,
           masterProfile: profile,

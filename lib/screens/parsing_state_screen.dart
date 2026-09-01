@@ -64,8 +64,10 @@ class _ParsingStateScreenState extends State<ParsingStateScreen>
 
     // Perform real candidate text extraction from uploaded document
     try {
-      if (docName.startsWith('http')) {
-        _parsedProfile = await ResumeParserService.parseLinkedInUrl(docName);
+      final isLinkedIn = docName.startsWith('http') || docName.contains('linkedin.com');
+      if (isLinkedIn) {
+        final formattedUrl = docName.startsWith('http') ? docName : 'https://$docName';
+        _parsedProfile = await ResumeParserService.parseLinkedInUrl(formattedUrl);
       } else {
         _parsedProfile = await ResumeParserService.parseResumeDocument(
           fileName: docName,
@@ -87,6 +89,8 @@ class _ParsingStateScreenState extends State<ParsingStateScreen>
       return;
     }
 
+    if (!mounted || _parsedProfile == null) return;
+
     // Populate live extracted pills from real candidate profile
     final pillList = <String>[];
     if (_parsedProfile!.fullName != 'Candidate') {
@@ -102,7 +106,12 @@ class _ParsingStateScreenState extends State<ParsingStateScreen>
       pillList.add(e.company);
     }
 
-    _extractedPills.addAll(pillList.take(6));
+    setState(() {
+      _extractedPills.clear();
+      _extractedPills.addAll(pillList.take(6));
+    });
+
+    _startPipeline();
   }
 
   void _startPipeline() {
