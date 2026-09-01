@@ -32,26 +32,16 @@ class TailoringResult(BaseModel):
     sections: List[TailoredSectionOutput] = Field(description="The tailored work experience sections matching the original resume structure.")
 
 def _call_gemini_sync(prompt: str) -> str:
-    response = client.models.generate_content(
-        model='gemini-3.6-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=TailoringResult,
-            temperature=0.7,
-        ),
-    )
-    return response.text or ""
-
-@router.post("/generate-cv")
-async def generate_cv(payload: Dict[Any, Any] = Body(...)):
-    job_title = str(payload.get("job_title") or "Target Role")
-    target_company = str(payload.get("target_company") or "Target Company")
-    user_profile_data = str(payload.get("user_profile_data") or "")
-    raw_jd = str(payload.get("raw_jd") or "")
-    tone = str(payload.get("tone") or "Professional")
-
-    name_match = re.search(r"Name:\s*(.*)", user_profile_data)
+    last_error = None
+    for model_name in FALLBACK_MODELS:
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=TailoringResult,
     candidate_name = name_match.group(1).strip() if name_match else "Candidate"
     
     bio_match = re.search(r"Bio:\s*(.*)", user_profile_data)

@@ -51,17 +51,37 @@ class MasterProfileExtraction(BaseModel):
     education: List[ExtractedEducation]
     skills: List[ExtractedSkill]
 
+FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+
 def _call_gemini_extraction_sync(prompt: str) -> str:
-    response = client.models.generate_content(
-        model='gemini-3.6-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=MasterProfileExtraction,
-            temperature=0.1,
-        ),
-    )
-    return response.text or ""
+    last_error = None
+    for model_name in FALLBACK_MODELS:
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=MasterProfileExtraction,
+                        temperature=0.1,
+                    ),
+                )
+                if response.text and response.text.strip():
+                    return response.text
+            except Exception as e:
+                last_error = e
+                err_msg = str(e)
+                print(f"[Gemini Fallback] Model '{model_name}' attempt {attempt + 1} failed: {err_msg}")
+                if "503" in err_msg or "high demand" in err_msg.lower() or "429" in err_msg:
+                    import time
+                    time.sleep(1.0)
+                    continue
+                else:
+                    break
+    if last_error:
+        raise last_error
+    return ""
 
 class ProfileService:
     @staticmethod
@@ -293,16 +313,11 @@ class ProfileService:
                 raise ValueError("Empty response from extraction model")
             result_data = json.loads(response_text)
         except Exception as e:
-            print(f"Error extracting profile with Gemini: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to process CV with AI parser: {str(e)}"
-            )
+            print(f"[Parser Fallback] AI parser unavailable ({e}), using instant local rule-based extractor...")
+            result_data = _extract_profile_rule_based(raw_text, current_user)
         
         # 3. Save to database safely without erasing existing data if parse is empty
         profile = await ProfileService.get_or_create_profile(db, current_user)
-        profile.full_name = result_data.get("full_name") or profile.full_name
-        profile.title = result_data.get("title") or profile.title
         profile.email = result_data.get("email") or profile.email
         profile.phone = result_data.get("phone") or profile.phone
         profile.location = result_data.get("location") or profile.location
@@ -369,11 +384,8 @@ class ProfileService:
                 raise ValueError("Empty response from extraction model")
             result_data = json.loads(response_text)
         except Exception as e:
-            print(f"Error parsing LinkedIn with Gemini: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to parse LinkedIn profile: {str(e)}"
-            )
+            print(f"[LinkedIn Fallback] AI parser unavailable ({e}), using instant local rule-based extractor...")
+            result_data = _extract_profile_rule_based(html_content, current_user)
         
         # Save to database safely without erasing existing data if parse is empty
         profile = await ProfileService.get_or_create_profile(db, current_user)
@@ -382,8 +394,6 @@ class ProfileService:
         profile.email = result_data.get("email") or profile.email
         profile.phone = result_data.get("phone") or profile.phone
         profile.location = result_data.get("location") or profile.location
-        profile.bio = result_data.get("bio") or profile.bio
-        profile.linkedin_url = url
         
         if result_data.get("experiences"):
             profile.experiences = result_data["experiences"]
