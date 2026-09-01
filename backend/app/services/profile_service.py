@@ -51,7 +51,15 @@ class MasterProfileExtraction(BaseModel):
     education: List[ExtractedEducation]
     skills: List[ExtractedSkill]
 
-FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+FALLBACK_MODELS = ['gemini-3.6-flash']
+
+COMMON_SKILLS = [
+    "Python", "JavaScript", "TypeScript", "Dart", "Flutter", "React", "React Native",
+    "Node.js", "Express", "FastAPI", "Django", "Flask", "SQL", "PostgreSQL", "MySQL",
+    "MongoDB", "Redis", "Docker", "Kubernetes", "AWS", "Google Cloud", "Azure", "Git",
+    "GitHub", "CI/CD", "REST API", "GraphQL", "HTML", "CSS", "TailwindCSS", "Java",
+    "Kotlin", "Swift", "C++", "C#", ".NET", "Linux", "Terraform", "Figma", "Agile", "Scrum"
+]
 
 def _call_gemini_extraction_sync(prompt: str) -> str:
     last_error = None
@@ -72,16 +80,108 @@ def _call_gemini_extraction_sync(prompt: str) -> str:
             except Exception as e:
                 last_error = e
                 err_msg = str(e)
-                print(f"[Gemini Fallback] Model '{model_name}' attempt {attempt + 1} failed: {err_msg}")
+                print(f"[Gemini Extraction] Model '{model_name}' attempt {attempt + 1} failed: {err_msg}")
                 if "503" in err_msg or "high demand" in err_msg.lower() or "429" in err_msg:
                     import time
-                    time.sleep(1.0)
+                    time.sleep(1.5)
                     continue
                 else:
                     break
     if last_error:
         raise last_error
     return ""
+
+def _extract_profile_rule_based(raw_text: str, default_email: str) -> dict:
+    import re
+    lines = [l.strip() for l in raw_text.splitlines() if l.strip()]
+    
+    # 1. Email extraction
+    email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', raw_text)
+    email = email_match.group(0) if email_match else default_email
+    
+    # 2. Phone extraction
+    phone_match = re.search(r'(\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}', raw_text)
+    phone = phone_match.group(0) if phone_match else ""
+    
+    # 3. Name & Title from top lines
+    full_name = "Candidate"
+    title = ""
+    for line in lines[:6]:
+        if "@" not in line and not any(char.isdigit() for char in line) and len(line) < 40 and not any(w in line.lower() for w in ["resume", "curriculum", "contact"]):
+            if full_name == "Candidate":
+                full_name = line
+            elif not title and len(line) < 50:
+                title = line
+                break
+                
+    # 4. Skills extraction
+    found_skills = []
+    lower_text = raw_text.lower()
+    for skill in COMMON_SKILLS:
+        pattern = r'\b' + re.escape(skill.lower()) + r'\b'
+        if re.search(pattern, lower_text):
+            found_skills.append({
+                "id": f"skl_{uuid.uuid4().hex[:8]}",
+                "name": skill,
+                "category": "hard"
+            })
+            
+    # 5. Experience extraction using date patterns
+    experiences = []
+    date_pattern = re.compile(r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|\d{4})\s*(?:-|–|to)\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|\d{4}|Present|Current)', re.IGNORECASE)
+    exp_matches = list(date_pattern.finditer(raw_text))
+    for i, match in enumerate(exp_matches[:5]):
+        start_pos = match.start()
+        preceding = raw_text[:start_pos].strip().splitlines()
+        comp_title = preceding[-1].strip() if preceding else "Company / Role"
+        parts = re.split(r'[-–|,@]', comp_title)
+        role = parts[0].strip() if len(parts) > 0 else "Role"
+        company = parts[1].strip() if len(parts) > 1 else comp_title
+        
+        end_pos = exp_matches[i + 1].start() if i + 1 < len(exp_matches) else start_pos + 600
+        section_chunk = raw_text[match.end():end_pos]
+        bullet_lines = [b.strip().lstrip("•-*– ") for b in section_chunk.splitlines() if len(b.strip()) > 15]
+        
+        bullets = [{"id": f"blt_{uuid.uuid4().hex[:8]}", "text": b} for b in bullet_lines[:4]]
+        if not bullets:
+            bullets = [{"id": f"blt_{uuid.uuid4().hex[:8]}", "text": "Responsible for core engineering and key product deliverables."}]
+            
+        experiences.append({
+            "id": f"exp_{uuid.uuid4().hex[:8]}",
+            "company": company,
+            "title": role,
+            "start_date": match.group(1),
+            "end_date": match.group(2),
+            "bullets": bullets
+        })
+        
+    # 6. Education extraction
+    education = []
+    edu_keywords = ["Bachelor", "Master", "B.S.", "B.A.", "M.S.", "Ph.D.", "Degree", "University", "College", "Institute", "Polytechnic"]
+    for line in lines:
+        if any(kw.lower() in line.lower() for kw in edu_keywords) and len(line) < 100:
+            education.append({
+                "id": f"edu_{uuid.uuid4().hex[:8]}",
+                "institution": line,
+                "degree": "Degree Program",
+                "field_of_study": "",
+                "start_year": "",
+                "end_year": ""
+            })
+            if len(education) >= 2:
+                break
+                
+    return {
+        "full_name": full_name,
+        "title": title or "Software Professional",
+        "email": email,
+        "phone": phone,
+        "location": "",
+        "bio": f"{title or 'Professional'} with demonstrated technical and engineering experience.",
+        "experiences": experiences,
+        "education": education,
+        "skills": found_skills
+    }
 
 class ProfileService:
     @staticmethod

@@ -31,7 +31,7 @@ class TailoringResult(BaseModel):
     missing_keywords: List[str] = Field(description="Crucial keywords from the JD that are completely missing in the resume.")
     sections: List[TailoredSectionOutput] = Field(description="The tailored work experience sections matching the original resume structure.")
 
-FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+FALLBACK_MODELS = ['gemini-3.6-flash']
 
 def _call_gemini_sync(prompt: str) -> str:
     last_error = None
