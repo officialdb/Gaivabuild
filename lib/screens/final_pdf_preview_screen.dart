@@ -416,8 +416,8 @@ class _CvDocumentLayout extends StatelessWidget {
         // Section: Professional Summary
         const _CvSectionTitle(title: 'PROFESSIONAL SUMMARY'),
         const SizedBox(height: 4),
-        const Text(
-          widget.application.bio.isNotEmpty ? widget.application.bio : 'Professional software engineer dedicated to building scalable systems.',
+        Text(
+          app.bio.isNotEmpty ? app.bio : 'Professional software engineer dedicated to building scalable systems.',
           style: TextStyle(
             color: AppTheme.textPrimaryLight,
             fontSize: 10.5,
@@ -509,12 +509,12 @@ class _CvDocumentLayout extends StatelessWidget {
         // Section: Education
         const _CvSectionTitle(title: 'EDUCATION'),
         const SizedBox(height: 4),
-        const Row(
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Text(
-                widget.application.education.isNotEmpty ? widget.application.education : 'B.S. in Computer Science',
+                app.education.isNotEmpty ? app.education : 'B.S. in Computer Science',
                 style: TextStyle(
                   color: AppTheme.textPrimaryLight,
                   fontSize: 10.5,
