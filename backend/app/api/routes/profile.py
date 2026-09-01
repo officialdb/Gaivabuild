@@ -55,4 +55,4 @@ async def delete_education(id: str, current_user: str = Depends(get_current_user
 @router.post("/parse-cv")
 async def parse_cv(file: UploadFile = File(...), current_user: str = Depends(get_current_user), db = Depends(get_db)):
     content = await file.read()
-    return await ProfileService.parse_cv(content)
+    return await ProfileService.parse_cv(content, file.filename, current_user, db)

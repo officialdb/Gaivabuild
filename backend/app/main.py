@@ -7,7 +7,8 @@ from app.middleware.logging import LoggingMiddleware
 
 from contextlib import asynccontextmanager
 from app.core.database import engine, Base
-from app.models.user import User  # Ensure models are imported for metadata
+from app.models.user import User
+from app.models.profile import MasterProfile
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

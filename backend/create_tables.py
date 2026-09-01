@@ -2,6 +2,7 @@ import asyncio
 import os
 from sqlalchemy.ext.asyncio import create_async_engine
 from app.models.user import User
+from app.models.profile import MasterProfile
 from app.core.database import Base
 
 DATABASE_URL = "postgresql+asyncpg://neondb_owner:npg_b4eGUD6jfKvV@ep-patient-haze-ayj6lw56-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"

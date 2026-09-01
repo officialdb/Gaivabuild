@@ -54,22 +54,27 @@ class _ParsingStateScreenState extends State<ParsingStateScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _parseDocumentBytes();
-    _startPipeline();
+    _parseDocumentBytes().then((_) => _startPipeline());
   }
 
-  void _parseDocumentBytes() {
+  Future<void> _parseDocumentBytes() async {
     final user = AuthService().currentUser;
     final docName = widget.fileName ?? widget.sourceName ?? 'Uploaded Resume.pdf';
     final docBytes = widget.bytes ?? [];
 
     // Perform real candidate text extraction from uploaded document
-    _parsedProfile = ResumeParserService.parseResumeDocument(
+    try {
+      _parsedProfile = await ResumeParserService.parseResumeDocument(
       fileName: docName,
       bytes: docBytes,
       userEmail: user?.email,
       userName: user?.fullName,
-    );
+      );
+    } catch(e) {
+      print('Error parsing CV: $e');
+      // Fallback empty profile on error
+      _parsedProfile = MasterProfile.empty(name: user?.fullName, email: user?.email);
+    }
 
     // Populate live extracted pills from real candidate profile
     final pillList = <String>[];
