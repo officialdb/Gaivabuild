@@ -7,7 +7,8 @@ import 'parsing_state_screen.dart';
 import 'profile_dashboard_screen.dart';
 
 class DataIngestionBottomSheet extends StatefulWidget {
-  const DataIngestionBottomSheet({super.key});
+  final VoidCallback? onBuildManually;
+  const DataIngestionBottomSheet({super.key, this.onBuildManually});
 
   @override
   State<DataIngestionBottomSheet> createState() => _DataIngestionBottomSheetState();
@@ -84,11 +85,58 @@ class _DataIngestionBottomSheetState extends State<DataIngestionBottomSheet> {
 
   void _navigateToManualEntry(BuildContext context) {
     Navigator.of(context).pop();
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => const ProfileDashboardScreen(),
+    if (widget.onBuildManually != null) {
+      widget.onBuildManually!();
+    }
+  }
+
+  void _openLinkedInDialog(BuildContext context) {
+    final urlCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import from LinkedIn'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Paste your public LinkedIn profile URL below.',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryLight),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlCtrl,
+              decoration: const InputDecoration(
+                labelText: 'LinkedIn URL',
+                prefixIcon: Icon(Icons.link),
+                hintText: 'https://linkedin.com/in/username',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final url = urlCtrl.text.trim();
+              if (url.isEmpty || !url.startsWith('http')) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid URL', style: TextStyle(color: Colors.white))));
+                return;
+              }
+              Navigator.pop(ctx); // Close dialog
+              Navigator.of(context).pop(); // Close bottom sheet
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => ParsingStateScreen(sourceName: url, bytes: null),
+              ));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.cobaltBlue),
+            child: const Text('Import', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
-      (route) => false,
     );
   }
 
@@ -152,12 +200,11 @@ class _DataIngestionBottomSheetState extends State<DataIngestionBottomSheet> {
 
           // Option 2: LinkedIn PDF Import via Native File Picker
           _IngestionCard(
-            title: 'Import LinkedIn Profile PDF',
-            subtitle: 'Select LinkedIn export file from your device',
-            icon: Icons.account_box_rounded,
+            title: 'Import LinkedIn via URL',
+            subtitle: 'Paste your LinkedIn profile link to extract data',
+            icon: Icons.link_rounded,
             accentColor: AppTheme.cobaltBlue,
-            isLoading: _isUploading,
-            onTap: _pickAndUploadResume,
+            onTap: () => _openLinkedInDialog(context),
           ),
           const SizedBox(height: 14),
 
@@ -193,6 +240,56 @@ class _IngestionCard extends StatelessWidget {
     this.isLoading = false,
     required this.onTap,
   });
+
+  void _openLinkedInDialog(BuildContext context) {
+    final urlCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import from LinkedIn'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Paste your public LinkedIn profile URL below.',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryLight),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlCtrl,
+              decoration: const InputDecoration(
+                labelText: 'LinkedIn URL',
+                prefixIcon: Icon(Icons.link),
+                hintText: 'https://linkedin.com/in/username',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final url = urlCtrl.text.trim();
+              if (url.isEmpty || !url.startsWith('http')) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid URL', style: TextStyle(color: Colors.white))));
+                return;
+              }
+              Navigator.pop(ctx); // Close dialog
+              Navigator.of(context).pop(); // Close bottom sheet
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => ParsingStateScreen(sourceName: url, bytes: null),
+              ));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.cobaltBlue),
+            child: const Text('Import', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

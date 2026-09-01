@@ -31,7 +31,29 @@ class ResumeParserService {
       mimeType = 'application/pdf';
     } else if (fileName.toLowerCase().endsWith('.docx')) {
       mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    
+  static Future<MasterProfile> parseLinkedInUrl(String linkedinUrl) async {
+    final token = AuthService().currentSession?.accessToken;
+    if (token == null) throw Exception("Unauthorized: No session token");
+
+    final uri = Uri.parse('$baseUrl/profile/parse-linkedin');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'url': linkedinUrl}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+      return MasterProfile.fromJson(jsonMap);
+    } else {
+      throw Exception('Failed to parse LinkedIn: ${response.statusCode} - ${response.body}');
     }
+  }
+}
 
     final mediaType = MediaType.parse(mimeType);
     
@@ -52,6 +74,72 @@ class ResumeParserService {
       return MasterProfile.fromJson(jsonMap);
     } else {
       throw Exception('Failed to parse CV on backend: ${response.statusCode} - ${response.body}');
+    
+  static Future<MasterProfile> parseLinkedInUrl(String linkedinUrl) async {
+    final token = AuthService().currentSession?.accessToken;
+    if (token == null) throw Exception("Unauthorized: No session token");
+
+    final uri = Uri.parse('$baseUrl/profile/parse-linkedin');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'url': linkedinUrl}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+      return MasterProfile.fromJson(jsonMap);
+    } else {
+      throw Exception('Failed to parse LinkedIn: ${response.statusCode} - ${response.body}');
+    }
+  }
+}
+  
+  static Future<MasterProfile> parseLinkedInUrl(String linkedinUrl) async {
+    final token = AuthService().currentSession?.accessToken;
+    if (token == null) throw Exception("Unauthorized: No session token");
+
+    final uri = Uri.parse('$baseUrl/profile/parse-linkedin');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'url': linkedinUrl}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+      return MasterProfile.fromJson(jsonMap);
+    } else {
+      throw Exception('Failed to parse LinkedIn: ${response.statusCode} - ${response.body}');
+    }
+  }
+}
+
+  static Future<MasterProfile> parseLinkedInUrl(String linkedinUrl) async {
+    final token = AuthService().currentSession?.accessToken;
+    if (token == null) throw Exception("Unauthorized: No session token");
+
+    final uri = Uri.parse('$baseUrl/profile/parse-linkedin');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'url': linkedinUrl}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+      return MasterProfile.fromJson(jsonMap);
+    } else {
+      throw Exception('Failed to parse LinkedIn: ${response.statusCode} - ${response.body}');
     }
   }
 }

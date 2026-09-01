@@ -22,11 +22,9 @@ class AuthRepository {
   }
 
   Future<void> register(String email, String password, {String? fullName}) async {
-    await _api.post('/auth/register', body: {
-      'email': email,
-      'password': password,
-      if (fullName != null) 'full_name': fullName,
-    });
+    final reqBody = {'email': email, 'password': password};
+    if (fullName != null) reqBody['full_name'] = fullName;
+    await _api.post('/auth/register', body: reqBody);
   }
 
   Future<void> forgotPassword(String email) async {

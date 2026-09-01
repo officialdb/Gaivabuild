@@ -236,11 +236,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       'new_password': newPassController.text,
                     }),
                   );
-                  if (!mounted) return;
+                  if (!ctx.mounted) return;
                   if (res.statusCode >= 200 && res.statusCode < 300) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed successfully!'), backgroundColor: AppTheme.accent));
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Password changed successfully!'), backgroundColor: AppTheme.accent));
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to change password: ${jsonDecode(res.body)['detail'] ?? 'Error'}'), backgroundColor: AppTheme.danger));
+                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Failed to change password: ${jsonDecode(res.body)['detail'] ?? 'Error'}'), backgroundColor: AppTheme.danger));
                   }
                 } catch (_) {}
               }
@@ -569,7 +569,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       final res = await http.post(Uri.parse('${AuthService.baseUrl}/api/v1/account/2fa/toggle'), headers: _headers);
                       if (res.statusCode >= 200 && res.statusCode < 300) {
                         setState(() => _is2faEnabled = !_is2faEnabled);
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_is2faEnabled ? '2FA Enabled!' : '2FA Disabled'), backgroundColor: AppTheme.cobaltBlue));
                       }
                     } catch (_) {}
@@ -591,7 +591,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   onTap: () async {
                     try {
                       await http.get(Uri.parse('${AuthService.baseUrl}/api/v1/account/export-json'), headers: _headers);
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Master Profile facts exported to JSON file!'), backgroundColor: AppTheme.accent));
                     } catch (_) {}
                   },
@@ -604,7 +604,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   onTap: () async {
                     try {
                       await http.delete(Uri.parse('${AuthService.baseUrl}/api/v1/account/clear-cache'), headers: _headers);
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI embedding cache cleared on Auth.'), backgroundColor: AppTheme.textPrimaryLight));
                     } catch (_) {}
                   },

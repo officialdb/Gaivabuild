@@ -90,7 +90,9 @@ class _ProfileDashboardScreenState extends State<ProfileDashboardScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const DataIngestionBottomSheet(),
+      builder: (context) => DataIngestionBottomSheet(
+        onBuildManually: _openAddExperienceDialog,
+      ),
     );
   }
 

@@ -64,14 +64,18 @@ class _ParsingStateScreenState extends State<ParsingStateScreen>
 
     // Perform real candidate text extraction from uploaded document
     try {
-      _parsedProfile = await ResumeParserService.parseResumeDocument(
-      fileName: docName,
-      bytes: docBytes,
-      userEmail: user?.email,
-      userName: user?.fullName,
-      );
+      if (docName.startsWith('http')) {
+        _parsedProfile = await ResumeParserService.parseLinkedInUrl(docName);
+      } else {
+        _parsedProfile = await ResumeParserService.parseResumeDocument(
+          fileName: docName,
+          bytes: docBytes,
+          userEmail: user?.email,
+          userName: user?.fullName,
+        );
+      }
     } catch(e) {
-      print('Error parsing CV: $e');
+      debugPrint('Error parsing CV: $e');
       // Fallback empty profile on error
       _parsedProfile = MasterProfile.empty(name: user?.fullName, email: user?.email);
     }

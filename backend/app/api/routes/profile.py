@@ -56,3 +56,12 @@ async def delete_education(id: str, current_user: str = Depends(get_current_user
 async def parse_cv(file: UploadFile = File(...), current_user: str = Depends(get_current_user), db = Depends(get_db)):
     content = await file.read()
     return await ProfileService.parse_cv(content, file.filename, current_user, db)
+
+from pydantic import BaseModel
+
+class LinkedInRequest(BaseModel):
+    url: str
+
+@router.post("/parse-linkedin")
+async def parse_linkedin(req: LinkedInRequest, current_user: str = Depends(get_current_user), db = Depends(get_db)):
+    return await ProfileService.parse_linkedin(req.url, current_user, db)
